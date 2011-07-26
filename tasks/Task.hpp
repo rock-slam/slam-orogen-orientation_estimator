@@ -6,8 +6,8 @@
 #ifndef ORIENTATION_ESTIMATOR_TASK_TASK_HPP
 #define ORIENTATION_ESTIMATOR_TASK_TASK_HPP
 
-#include <quater_ikf/ikf.h> /**< IKF header file*/
 #include "orientation_estimator/TaskBase.hpp"
+#include <quater_ikf/ikf.h> /**< IKF header file*/
 
 namespace orientation_estimator {
   
