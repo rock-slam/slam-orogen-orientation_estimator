@@ -211,6 +211,7 @@ void Task::xsens_orientationCallback(const base::Time &ts, const ::base::samples
 void Task::xsens_samplesCallback(const base::Time &ts, const ::base::samples::IMUSensors &xsens_samples_sample)
 {
   Eigen::Quaternion <double> qb_g;
+  Eigen::Quaternion <double> auxq;
   Eigen::Matrix <double, NUMAXIS, 1> euler;
   Eigen::Matrix <double, NUMAXIS, 1> heading;
   double xsens_dt;
@@ -253,7 +254,10 @@ void Task::xsens_samplesCallback(const base::Time &ts, const ::base::samples::IM
     /** Orientation (Pitch and Roll from IKF, Yaw from FOG) */
     myikf->Quaternion2Euler(head_q, &heading);
     euler[2] = heading[2];
-    myikf->Quaternion2Euler(&(rbs_b_g->orientation), &euler);
+    myikf->Quaternion2Euler(&(auxq), &euler);
+    
+    /** Copy to the rigid_body_state **/
+    rbs_b_g->orientation = (base::Orientation) auxq;
     
     /** Write the Angular velocity (as the different between two orientations in radians)*/
     rbs_b_g->angular_velocity = (euler - (*oldeuler));
