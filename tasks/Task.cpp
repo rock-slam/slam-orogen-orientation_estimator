@@ -104,7 +104,7 @@ Task::~Task()
  * @return void
  *
  */
-void Task::fog_samplesCallback(const base::Time &ts, const ::base::samples::RigidBodyState &fog_samples_sample)
+void Task::fog_samplesCallback(const base::Time &ts, const ::base::samples::IMUSensors &fog_samples_sample)
 {
   
   Eigen::Matrix <double, NUMAXIS, 1> euler;
@@ -115,7 +115,7 @@ void Task::fog_samplesCallback(const base::Time &ts, const ::base::samples::Rigi
     if (flag_fog_time == false)
     {
       fog_time = (double)fog_samples_sample.time.toMilliseconds();
-      (*fog_gyros) = fog_samples_sample.angular_velocity;
+      (*fog_gyros) = fog_samples_sample.gyro;
       flag_fog_time = true;
     }
     else
@@ -123,7 +123,7 @@ void Task::fog_samplesCallback(const base::Time &ts, const ::base::samples::Rigi
       fog_dt = ((double)fog_samples_sample.time.toMilliseconds() - fog_time)/1000.00;
       fog_time = (double)fog_samples_sample.time.toMilliseconds();
       
-      (*fog_gyros) = fog_samples_sample.angular_velocity;
+      (*fog_gyros) = fog_samples_sample.gyro;
       
       /** Substract the Earth Rotation from the FOG output */
       myikf->SubstractEarthRotation (fog_gyros, head_q, _latitude.value());
