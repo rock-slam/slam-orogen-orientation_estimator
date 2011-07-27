@@ -1,0 +1,17 @@
+<package>
+  <description brief="Orientation estimation using Indirect Kalman Filter">
+  Rock module/task in order to use the IKF library. It uses de XSens MTi and the FOG.	
+  </description>
+  <author>Javier Hidalgo Carrio/javier.hidalgo_carrio@dfki.de</author>
+  <license></license>
+  <url>http://</url>
+  <logo>http://</logo>
+
+  <depend package="dagon/dagon"/> 
+  <depend package="tools/logger"/> 
+  <depend package="slam/quater_ikf"/>
+  <versioncontrol type="git" url="" />
+  <export>
+    <cpp cflags="" lflags="" />
+  </export>
+</package>
