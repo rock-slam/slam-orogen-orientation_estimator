@@ -72,7 +72,7 @@ task_context 'Task' do
     
 end
 
-deployment "orientation_test" do
+deployment "orientation_estimator" do
     orientation_task = task("orientation_estimator", "Task")
     add_default_logger
     if !corba_enabled?
