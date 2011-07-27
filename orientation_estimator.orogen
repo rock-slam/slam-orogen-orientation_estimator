@@ -19,7 +19,7 @@ task_context 'Task' do
       needs_reliable_connection.
       doc 'XSens init orientation in quaternion.'
 
-    input_port("fog_samples","/base/samples/RigidBodyState").
+    input_port("fog_samples","/base/samples/IMUSensors").
       needs_reliable_connection.
       doc 'optic gyro angular velocity 1D (Z axis).'
 
@@ -73,7 +73,6 @@ task_context 'Task' do
 end
 
 deployment "orientation_test" do
-    do_not_install
     orientation_task = task("orientation_estimator", "Task")
     add_default_logger
     if !corba_enabled?
