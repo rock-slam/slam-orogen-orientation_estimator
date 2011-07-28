@@ -254,7 +254,7 @@ void Task::xsens_samplesCallback(const base::Time &ts, const ::base::samples::IM
     /** Orientation (Pitch and Roll from IKF, Yaw from FOG) */
     myikf->Quaternion2Euler(head_q, &heading);
     euler[2] = heading[2];
-    myikf->Quaternion2Euler(&(auxq), &euler);
+    myikf->Euler2Quaternion(&euler, &(auxq));
     
     /** Copy to the rigid_body_state **/
     rbs_b_g->orientation = (base::Orientation) auxq;
