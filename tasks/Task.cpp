@@ -254,6 +254,11 @@ void Task::xsens_samplesCallback(const base::Time &ts, const ::base::samples::IM
     /** Orientation (Pitch and Roll from IKF, Yaw from FOG) */
     myikf->Quaternion2Euler(head_q, &heading);
     euler[2] = heading[2];
+    
+    /** Printing the values **/
+    //std::cout << "(Roll, Pitch, Yaw)\n"<< euler[0]*R2D<<","<< euler[1]*R2D<<","<< euler[2]*R2D<<"\n";
+    
+    /** Convert to Quaternions**/
     myikf->Euler2Quaternion(&euler, &(auxq));
     
     /** Copy to the rigid_body_state **/
