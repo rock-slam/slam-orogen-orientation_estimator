@@ -14,7 +14,7 @@ end
 #Initializes the CORBA communication layer
 Orocos.initialize
 
-Orocos::Process.spawn('orientation_test') do |p|
+Orocos::Process.spawn('orientation_estimator') do |p|
   
     # log all the output ports
     Orocos.log_all_ports 
@@ -35,7 +35,7 @@ Orocos::Process.spawn('orientation_test') do |p|
     
     #Mapping the inputs ports
     log_replay.xsens_imu.calibrated_sensors.connect_to( attitude_task.xsens_samples, :type => :buffer, :size => 10 )
-    log_replay.fog.orientation_samples.connect_to( attitude_task.fog_samples, :type => :buffer, :size => 10 )
+    log_replay.dsp3000.rotation.connect_to( attitude_task.fog_samples, :type => :buffer, :size => 10 )
     log_replay.xsens_imu.orientation_samples.connect_to( attitude_task.xsens_orientation, :type => :buffer, :size => 10 ) do |sample|
 #             vizkit_rbs.updateRigidBodyState(sample)
 # 	sample.cov_position.data[0] = 5
