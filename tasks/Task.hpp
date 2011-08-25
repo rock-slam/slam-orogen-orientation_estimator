@@ -58,7 +58,7 @@ namespace orientation_estimator {
     {
 	friend class TaskBase;
     protected:
-
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 	double xsens_time; /**< Delta time coming for Xsens values */
 	double fog_time; /**< Delta time coming for FOG values */
 	bool flag_xsens_time, flag_fog_time, init_attitude; /** Control flags */
