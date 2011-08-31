@@ -135,7 +135,7 @@ void Task::fog_samplesCallback(const base::Time &ts, const ::base::samples::IMUS
       
       Task::PropagateHeadingQuaternion (head_q, fog_gyros, fog_dt);
       myikf->Quaternion2Euler(head_q, &euler);
-      std::cout << "Heading(FOG): "<< euler[2]*R2D <<"\n";
+//std::cout << "Heading(FOG): "<< euler[2]*R2D <<"\n";
     }
   }
   
