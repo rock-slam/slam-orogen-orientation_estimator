@@ -10,6 +10,9 @@
   <depend package="dagon/dagon"/> 
   <depend package="tools/logger"/> 
   <depend package="slam/quater_ikf"/>
+  <tags>stable</tags>
+
+
   <versioncontrol type="git" url="" />
   <export>
     <cpp cflags="" lflags="" />
