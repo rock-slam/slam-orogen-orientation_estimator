@@ -49,9 +49,9 @@ namespace orientation_estimator {
     #define XSENSRWACCZ 0.0011245297 /** Xsens random walk acc Z **/
     #define XSENSRWACCS (XSENSRWACCX+XSENSRWACCY+XSENSRWACCZ)/3
     
-    #define XSENSRWMAGX 0.001590766 /** Xsens random walk mag X **/
-    #define XSENSRWMAGY 0.00250713 /** Xsens random walk mag Y **/
-    #define XSENSRWMAGZ 0.001061307 /** Xsens random walk mag Z **/
+    #define XSENSRWMAGX 0.0004290766 /** Xsens random walk mag X **/
+    #define XSENSRWMAGY 9.21e-005 /** Xsens random walk mag Y **/
+    #define XSENSRWMAGZ 1.06e-004 /** Xsens random walk mag Z **/
     #define XSENSRWMAGS (XSENSRWACCX+XSENSRWACCY+XSENSRWACCZ)/3
     
     class Task : public TaskBase
