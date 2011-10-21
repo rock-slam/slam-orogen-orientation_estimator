@@ -390,19 +390,19 @@ bool Task::configureHook()
   
   /** Fill the matrices **/
   Ra = Matrix<double,NUMAXIS,NUMAXIS>::Zero();
-  Ra(0,0) = pow(XSENSRWACCX,2)/_delta_time.value();
-  Ra(1,1) = pow(XSENSRWACCY,2)/_delta_time.value();
-  Ra(2,2) = pow(XSENSRWACCZ,2)/_delta_time.value();
+  Ra(0,0) = pow(XSENSRWACCX/sqrt(_delta_time.value()),2);
+  Ra(1,1) = pow(XSENSRWACCY/sqrt(_delta_time.value()),2);
+  Ra(2,2) = pow(XSENSRWACCZ/sqrt(_delta_time.value()),2);
   
   Rg = Matrix<double,NUMAXIS,NUMAXIS>::Zero();
-  Rg(0,0) = pow(XSENSRWGYROX,2)/_delta_time.value();
-  Rg(1,1) = pow(XSENSRWGYROY,2)/_delta_time.value();
-  Rg(2,2) = pow(XSENSRWGYROZ,2)/_delta_time.value();
+  Rg(0,0) = pow(XSENSRWGYROX/sqrt(_delta_time.value()),2);
+  Rg(1,1) = pow(XSENSRWGYROY/sqrt(_delta_time.value()),2);
+  Rg(2,2) = pow(XSENSRWGYROZ/sqrt(_delta_time.value()),2);
 
   Rm = Matrix<double,NUMAXIS,NUMAXIS>::Zero();
-  Rm(0,0) = pow(XSENSRWMAGX,2)/_delta_time.value();
-  Rm(1,1) = pow(XSENSRWMAGY,2)/_delta_time.value();
-  Rm(2,2) = pow(XSENSRWMAGZ,2)/_delta_time.value();
+  Rm(0,0) = pow(XSENSRWMAGX/sqrt(_delta_time.value()),2);
+  Rm(1,1) = pow(XSENSRWMAGY/sqrt(_delta_time.value()),2);
+  Rm(2,2) = pow(XSENSRWMAGZ/sqrt(_delta_time.value()),2);
 	
   /** Gravitational value according to the location **/
   g = myikf->GravityModel (latitude, altitude);
