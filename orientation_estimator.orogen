@@ -4,7 +4,6 @@ version '1.0'
 import_types_from "base"
 import_types_from "aggregator"
 using_library "quater_ikf"
-using_library "dagon"
 
 task_context 'Task' do
     needs_configuration

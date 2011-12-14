@@ -7,7 +7,6 @@
   <url>http://</url>
   <logo>http://</logo>
 
-  <depend package="dagon/dagon"/> 
   <depend package="tools/logger"/> 
   <depend package="slam/quater_ikf"/>
   <tags>stable</tags>
