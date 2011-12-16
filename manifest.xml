@@ -9,6 +9,7 @@
 
   <depend package="tools/logger"/> 
   <depend package="slam/quater_ikf"/>
+  <depend package="drivers/orogen/aggregator" />
   <tags>stable</tags>
 
 
