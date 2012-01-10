@@ -425,6 +425,7 @@ bool Task::startHook()
 void Task::updateHook()
 {
     TaskBase::updateHook();
+    
 }
 void Task::errorHook()
 {

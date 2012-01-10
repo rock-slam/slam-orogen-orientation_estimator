@@ -14,7 +14,7 @@ end
 #Initializes the CORBA communication layer
 Orocos.initialize
 
-Orocos::Process.spawn('orientation_estimator') do |p|
+Orocos.run('orientation_estimator') do |p|
   
     # log all the output ports
     Orocos.log_all_ports 
@@ -50,7 +50,7 @@ Orocos::Process.spawn('orientation_estimator') do |p|
     
      # open the log replay widget
     control = Vizkit.control log_replay
-    control.speed = 4
+    control.speed = 1 #4
 #     control.auto_replay
     Vizkit.exec
     

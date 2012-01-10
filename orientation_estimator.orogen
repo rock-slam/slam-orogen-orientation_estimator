@@ -3,6 +3,7 @@ version '1.0'
 
 import_types_from "base"
 import_types_from "aggregator"
+using_library "aggregator"
 using_library "quater_ikf"
 
 task_context 'Task' do
@@ -38,6 +39,9 @@ task_context 'Task' do
     #******************************
     output_port('attitude_b_g', '/base/samples/RigidBodyState');
       doc 'timestamped state vector holding orientation and angular velocity with respect to the Earth fixed frame (geographic frame).'
+
+    #output_port('streamaligner_status', '/aggregator/StreamAlignerStatus').
+	#doc 'Provides debug information on the state of the StreamAligner'
 
     #******************************
     #**** Location Properties *****
