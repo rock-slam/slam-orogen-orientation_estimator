@@ -47,6 +47,8 @@ Task::Task(std::string const& name)
   oldeuler = new Eigen::Matrix <double, NUMAXIS, 1>;
   myikf = new ikf;
   
+  backup = new base::samples::IMUSensors;
+  
   flag_xsens_time  = false;
   flag_fog_time  = false;
   init_attitude = false;
@@ -273,6 +275,14 @@ void Task::xsens_samplesCallback(const base::Time &ts, const ::base::samples::IM
     
     /** Write in the OROCOS Ports */
     _attitude_b_g.write((*rbs_b_g));
+    
+    /** Write inputs into output for backup **/
+    backup->gyro[0] = (*xsens_gyros)[0];
+    backup->gyro[1] = (*xsens_gyros)[1];
+    backup->gyro[2] = (*fog_gyros)[2];
+    backup->acc = (*xsens_acc);
+    
+    _inputs_backup.write ((*backup));
     
     
     
