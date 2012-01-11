@@ -277,6 +277,7 @@ void Task::xsens_samplesCallback(const base::Time &ts, const ::base::samples::IM
     _attitude_b_g.write((*rbs_b_g));
     
     /** Write inputs into output for backup **/
+    backup->time = xsens_samples_sample.time;
     backup->gyro[0] = (*xsens_gyros)[0];
     backup->gyro[1] = (*xsens_gyros)[1];
     backup->gyro[2] = (*fog_gyros)[2];
