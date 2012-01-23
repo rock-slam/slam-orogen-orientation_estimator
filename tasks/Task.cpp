@@ -136,7 +136,11 @@ void Task::fog_samplesCallback(const base::Time &ts, const ::base::samples::IMUS
       (*fog_gyros)[2] = (*fog_gyros)[2] - FOGBIAS;
       
       Task::PropagateHeadingQuaternion (head_q, fog_gyros, fog_dt);
-      myikf->Quaternion2Euler(head_q, &euler);
+      
+      //myikf->Quaternion2Euler(head_q, &euler);
+      /*euler[2] = quat->toRotationMatrix().eulerAngles(2,1,0)[0];//YAW
+      euler[1] = quat->toRotationMatrix().eulerAngles(2,1,0)[1];//PITCH
+      euler[0] = quat->toRotationMatrix().eulerAngles(2,1,0)[2];//ROL*/
      //std::cout << "Heading(FOG): "<< euler[2]*R2D <<"\n";
 
     }
@@ -182,10 +186,16 @@ void Task::xsens_orientationCallback(const base::Time &ts, const ::base::samples
      /** Fog quaternion initial value is also the IKF initial quaternion **/
      (*head_q) = myikf->getAttitude ();
      
-     myikf->Quaternion2Euler(&attitude, &euler);
+     //myikf->Quaternion2Euler(&attitude, &euler);
+     
+     euler[2] = attitude.toRotationMatrix().eulerAngles(2,1,0)[0];//YAW
+     euler[1] = attitude.toRotationMatrix().eulerAngles(2,1,0)[1];//PITCH
+     euler[0] = attitude.toRotationMatrix().eulerAngles(2,1,0)[2];//ROLL
+     
      std::cout << "Orientation (Quaternion): "<< attitude.w()<<","<<attitude.x()<<","<<attitude.y()<<","<<attitude.z()<<"\n";
      std::cout << "(Roll, Pitch, Yaw)\n"<< euler*R2D <<"\n";
      std::cout << "**********************\n";
+     
      (*oldeuler) = euler;
      
    }
@@ -256,13 +266,29 @@ void Task::xsens_samplesCallback(const base::Time &ts, const ::base::samples::IM
     
     /** Orientation (Pitch and Roll from IKF, Yaw from FOG) */
     myikf->Quaternion2Euler(head_q, &heading);
-    euler[2] = heading[2];
+    euler[2] = head_q->toRotationMatrix().eulerAngles(2,1,0)[0];//YAW
+    
+    //euler[2] = heading[2];
+    
+    std::cout << "(Yaw, Heading)\n"<< euler[2]*R2D<<","<< heading[2]*R2D<<"\n";
     
     /** Printing the values **/
-    //std::cout << "(Roll, Pitch, Yaw)\n"<< euler[0]*R2D<<","<< euler[1]*R2D<<","<< euler[2]*R2D<<"\n";
+     std::cout << "(Roll, Pitch, Yaw)\n"<< euler[0]*R2D<<","<< euler[1]*R2D<<","<< euler[2]*R2D<<"\n";
     
     /** Convert to Quaternions**/
-    myikf->Euler2Quaternion(&euler, &(auxq));
+     myikf->Euler2Quaternion(&euler, &(auxq));
+     std::cout << "Quaternion (1)" << auxq.w()<<", "<<auxq.x()<<", "<< auxq.y() <<", "<< auxq.z()<< "\n";
+    auxq = Eigen::Quaternion <double> (Eigen::AngleAxisd(euler[0], Eigen::Vector3d::UnitX())*
+ 			    Eigen::AngleAxisd(euler[1], Eigen::Vector3d::UnitY()) *
+ 			    Eigen::AngleAxisd(euler[2], Eigen::Vector3d::UnitZ())); //Roll, Pitch and Yaw in this order
+    
+     std::cout << "Quaternion (2)" << auxq.w()<<", "<<auxq.x()<<", "<< auxq.y() <<", "<< auxq.z()<< "\n";
+     
+     euler[2] = head_q->toRotationMatrix().eulerAngles(2,1,0)[0];//YAW
+     euler[1] = head_q->toRotationMatrix().eulerAngles(2,1,0)[1];//PITCH
+     euler[0] = head_q->toRotationMatrix().eulerAngles(2,1,0)[2];//ROLL
+     
+     std::cout << "(Roll, Pitch, Yaw)\n"<< euler[0]*R2D<<","<< euler[1]*R2D<<","<< euler[2]*R2D<<"\n";
     
     /** Copy to the rigid_body_state **/
     rbs_b_g->orientation = (base::Orientation) auxq;
