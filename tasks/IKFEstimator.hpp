@@ -1,17 +1,13 @@
 /* Generated from orogen/lib/orogen/templates/tasks/Task.hpp */
-/**\file Task.hpp
- * Header function file and defines of the Task component.
- */
 
-#ifndef ORIENTATION_ESTIMATOR_TASK_TASK_HPP
-#define ORIENTATION_ESTIMATOR_TASK_TASK_HPP
+#ifndef ORIENTATION_ESTIMATOR_IKFESTIMATOR_TASK_HPP
+#define ORIENTATION_ESTIMATOR_IKFESTIMATOR_TASK_HPP
 
-#include "orientation_estimator/TaskBase.hpp"
+#include "orientation_estimator/IKFEstimatorBase.hpp"
 #include <quater_ikf/ikf.h> /**< IKF header file*/
 
-
 namespace orientation_estimator {
-  
+    
     /** General defines **/
     #ifndef OK
     #define OK	0  /**< Integer value in order to return when everything is all right. */
@@ -53,14 +49,29 @@ namespace orientation_estimator {
     #define XSENSRWMAGY 9.21e-005 /** Xsens random walk mag Y **/
     #define XSENSRWMAGZ 1.06e-004 /** Xsens random walk mag Z **/
     #define XSENSRWMAGS (XSENSRWACCX+XSENSRWACCY+XSENSRWACCZ)/3
-    
-    class Task : public TaskBase
+
+    /*! \class IKFEstimator 
+     * \brief The task context provides and requires services. It uses an ExecutionEngine to perform its functions.
+     * Essential interfaces are operations, data flow ports and properties. These interfaces have been defined using the oroGen specification.
+     * In order to modify the interfaces you should (re)use oroGen and rely on the associated workflow.
+     * This value is not used for the filter in the integration. This is only used for the noise matrices
+     * \details
+     * The name of a TaskContext is primarily defined via:
+     \verbatim
+     deployment 'deployment_name'
+         task('custom_task_name','orientation_estimator::IKFEstimator')
+     end
+     \endverbatim
+     *  It can be dynamically adapted when the deployment is called with a prefix argument. 
+     */
+    class IKFEstimator : public IKFEstimatorBase
     {
-	friend class TaskBase;
+	friend class IKFEstimatorBase;
     protected:
+
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 	double xsens_time; /**< Delta time coming for Xsens values */
-	double fog_time; /**< Delta time coming for FOG values */
+	double fog_time, fog_dt; /**< Delta time coming for FOG values */
 	bool flag_xsens_time, flag_fog_time, init_attitude; /** Control flags */
 	Eigen::Matrix <double,NUMAXIS,1> *xsens_gyros; /**< Gyroscopes from Xsens */
 	Eigen::Matrix <double,NUMAXIS,1> *xsens_acc; /**< Acceleremeters from Xsens */
@@ -73,16 +84,85 @@ namespace orientation_estimator {
 	
 	base::samples::IMUSensors *backup;
 	
+	 /**
+	 * @brief Fiber Optic Gyro callback function
+	 * 
+	 * This function performs the callback of the StreamAlligner for the DSP-3000
+	 * FOG. Moreover it performs the gyros integration using quaternion.
+	 * Following this quaternion integration the drift is 6 degrees/hour.
+	 *
+	 * @author Javier Hidalgo Carrio.
+	 *
+	 * @param[in] &ts timestamp
+	 * @param[in] &fog_samples_sample FOG angular velocty
+	 *
+	 * @return void
+	 *
+	 */
         virtual void fog_samplesCallback(const base::Time &ts, const ::base::samples::IMUSensors &fog_samples_sample);
+	
+	/**
+	* @brief Xsens orientation callback function
+	* 
+	* This function performs the callback of the StreamAlligner for the 
+	* orientation coming from the Xsens quaternion
+	* 
+	* This function is used to initially set the quaternion.
+	* Therefore, it initializes the original value for the orientation (init quaternion).
+	*
+	* @author Javier Hidalgo Carrio.
+	*
+	* @param[in] &ts timestamp
+	* @param[in] &xsens_samples_sample Xsens sensor quaternion.
+	*
+	* @return void
+	*
+	*/
         virtual void xsens_orientationCallback(const base::Time &ts, const ::base::samples::RigidBodyState &xsens_orientation_sample);
+	
+	/**
+	* @brief Xsens callback function
+	* 
+	* This function performs the callback of the StreamAlligner for the Xsens
+	* angular velocity, accelerometers and magnetometers.
+	* 
+	* This function has the prediction, mesurement and correction steps of the IKF.
+	* The quaternion output is combined with the Heading angle coming from the 
+	* FOG Callback function and store in the Output port.
+	*
+	* @author Javier Hidalgo Carrio.
+	*
+	* @param[in] &ts timestamp
+	* @param[in] &xsens_samples_sample Xsens sensor values.
+	*
+	* @return void
+	*
+	*/
         virtual void xsens_samplesCallback(const base::Time &ts, const ::base::samples::IMUSensors &xsens_samples_sample);
 	
-	void PropagateHeadingQuaternion(Eigen::Quaternion <double> *quat, Eigen::Matrix<double, NUMAXIS , 1>* angvelo, double dt);
-	
-    public:
-        Task(std::string const& name = "orientation_estimator::Task");
 
-	~Task();
+
+    public:
+        /** TaskContext constructor for IKFEstimator
+         * \param name Name of the task. This name needs to be unique to make it identifiable via nameservices.
+         * \param initial_state The initial TaskState of the TaskContext. Default is Stopped state.
+         */
+        IKFEstimator(std::string const& name = "orientation_estimator::IKFEstimator");
+
+        /** TaskContext constructor for IKFEstimator 
+         * \param name Name of the task. This name needs to be unique to make it identifiable for nameservices. 
+         * \param engine The RTT Execution engine to be used for this task, which serialises the execution of all commands, programs, state machines and incoming events for a task. 
+         * 
+         */
+        IKFEstimator(std::string const& name, RTT::ExecutionEngine* engine);
+
+        /** Default deconstructor of IKFEstimator
+	 *  * Free allocated memory by Task class
+	 *
+	 *
+	 * @return void
+         */
+	~IKFEstimator();
 
         /** This hook is called by Orocos when the state machine transitions
          * from PreOperational to Stopped. If it returns false, then the
@@ -91,11 +171,12 @@ namespace orientation_estimator {
          *
          * It is meaningful only if the #needs_configuration has been specified
          * in the task context definition with (for example):
-         *
-         *   task_context "TaskName" do
-         *     needs_configuration
-         *     ...
-         *   end
+         \verbatim
+         task_context "TaskName" do
+           needs_configuration
+           ...
+         end
+         \endverbatim
          */
         bool configureHook();
 
@@ -126,7 +207,7 @@ namespace orientation_estimator {
          * RunTimeError state, at each activity step. See the discussion in
          * updateHook() about triggering options.
          *
-         * Call recovered() to go back in the Runtime state.
+         * Call recover() to go back in the Runtime state.
          */
         void errorHook();
 

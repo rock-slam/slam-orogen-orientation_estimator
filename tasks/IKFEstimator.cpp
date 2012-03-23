@@ -1,5 +1,5 @@
-/* Generated from orogen/lib/orogen/templates/tasks/Task.cpp */
-/**\file Task.cpp
+/* Generated from orogen/lib/orogen/templates/tasks/IKFEstimator.cpp */
+/**\file IKFEstimator.cpp
  *
  * This class perform a OROCOS/ROCK component for Attitude (orientation) estimation
  * using the Idirect Kalman Filter (IKF) library.
@@ -8,7 +8,7 @@
  * The IKF is dynamics in the measurement step for accelerometers, therefore the attitude 
  * estimation for Pitcha and Roll is also valid when external acceleration are felt.
  * 
- * This Task uses the StreamAlligner having three Agregators (Inputs)
+ * This IKFEstimator uses the StreamAlligner having three Agregators (Inputs)
  * 1. The Xsens angular velocity, acceleration and magnetometers.
  * 2. Xsens quaternion orientation
  * 3. Fog read out of robot Z-axis (Up)
@@ -20,7 +20,8 @@
  * @version 1.0.
  */
 
-#include "Task.hpp"
+#include "IKFEstimator.hpp"
+#include "BaseEstimator.hpp"
 
 using namespace orientation_estimator;
 using namespace filter;
@@ -28,14 +29,14 @@ using namespace filter;
 /**
  * @brief Constructor
  * 
- * Memory allocation for Task component and
+ * Memory allocation for IKFEstimator component and
  * initial values of task flags. 
  * 
  * @return void
  *
  */
-Task::Task(std::string const& name)
-    : TaskBase(name)
+IKFEstimator::IKFEstimator(std::string const& name)
+    : IKFEstimatorBase(name)
 {
   
   xsens_gyros = new Eigen::Matrix <double,NUMAXIS,1>;
@@ -57,13 +58,13 @@ Task::Task(std::string const& name)
 /**
  * @brief Destructor
  * 
- * Free allocated memory by Task class
+ * Free allocated memory by IKFEstimator class
  *
  *
  * @return void
  *
  */
-Task::~Task()
+IKFEstimator::~IKFEstimator()
 {
   /** Free filter object **/
   delete myikf;
@@ -106,11 +107,10 @@ Task::~Task()
  * @return void
  *
  */
-void Task::fog_samplesCallback(const base::Time &ts, const ::base::samples::IMUSensors &fog_samples_sample)
+void IKFEstimator::fog_samplesCallback(const base::Time &ts, const ::base::samples::IMUSensors &fog_samples_sample)
 {
   
   Eigen::Matrix <double, NUMAXIS, 1> euler;
-  double fog_dt;
   
   if (init_attitude == true)
   {
@@ -128,14 +128,14 @@ void Task::fog_samplesCallback(const base::Time &ts, const ::base::samples::IMUS
       (*fog_gyros) = fog_samples_sample.gyro;
       
       /** Substract the Earth Rotation from the FOG output */
-      myikf->SubstractEarthRotation (fog_gyros, head_q, _latitude.value());
+      BaseEstimator::SubstractEarthRotation (fog_gyros, head_q, _latitude.value());
       
       /** Only in the Yaw (Z-axis) are the FOG angular velocity ) */
       (*fog_gyros)[0] = 0.00;
       (*fog_gyros)[1] = 0.00;
-      (*fog_gyros)[2] = (*fog_gyros)[2] - FOGBIAS;
+      (*fog_gyros)[2] = (*fog_gyros)[2] - _gbiasof.get()[2];
       
-      Task::PropagateHeadingQuaternion (head_q, fog_gyros, fog_dt);
+      BaseEstimator::PropagateHeadingQuaternion (head_q, fog_gyros, fog_dt);
       
       //myikf->Quaternion2Euler(head_q, &euler);
       /*euler[2] = quat->toRotationMatrix().eulerAngles(2,1,0)[0];//YAW
@@ -166,7 +166,7 @@ void Task::fog_samplesCallback(const base::Time &ts, const ::base::samples::IMUS
  * @return void
  *
  */
-void Task::xsens_orientationCallback(const base::Time &ts, const ::base::samples::RigidBodyState &xsens_orientation_sample)
+void IKFEstimator::xsens_orientationCallback(const base::Time &ts, const ::base::samples::RigidBodyState &xsens_orientation_sample)
 {
   
   Eigen::Quaternion <double> attitude (xsens_orientation_sample.orientation.w(), xsens_orientation_sample.orientation.x(),
@@ -177,7 +177,7 @@ void Task::xsens_orientationCallback(const base::Time &ts, const ::base::samples
    {
      std::cout << "******** Init Attitude *******\n";
      /** Eliminate the Magnetic declination from the initial attitude quaternion **/
-     myikf->CorrectMagneticDeclination (&attitude, _magnetic_declination.value(), _magnetic_declination_mode.value());
+     BaseEstimator::CorrectMagneticDeclination (&attitude, _magnetic_declination.value(), _magnetic_declination_mode.value());
      
      /** Set the initial attitude quaternion of the IKF **/
      myikf->setAttitude (&attitude);
@@ -221,7 +221,7 @@ void Task::xsens_orientationCallback(const base::Time &ts, const ::base::samples
  * @return void
  *
  */
-void Task::xsens_samplesCallback(const base::Time &ts, const ::base::samples::IMUSensors &xsens_samples_sample)
+void IKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::samples::IMUSensors &xsens_samples_sample)
 {
   Eigen::Quaternion <double> qb_g;
   Eigen::Quaternion <double> auxq;
@@ -251,7 +251,7 @@ void Task::xsens_samplesCallback(const base::Time &ts, const ::base::samples::IM
 
       /** Substract the Earth Rotation from the gyros output */
       qb_g = myikf->getAttitude(); /** Rotation with respect to the geographic frame (North-Up-West) */
-      myikf->SubstractEarthRotation (xsens_gyros, &qb_g, _latitude.value());
+      BaseEstimator::SubstractEarthRotation (xsens_gyros, &qb_g, _latitude.value());
       
       /** Perform the Indirect Kalman Filter */
       myikf->predict (xsens_gyros, xsens_dt);
@@ -277,7 +277,7 @@ void Task::xsens_samplesCallback(const base::Time &ts, const ::base::samples::IM
     rbs_b_g->orientation = (base::Orientation) auxq;
     
     /** Write the Angular velocity (as the different between two orientations in radians)*/
-    rbs_b_g->angular_velocity = (euler - (*oldeuler));
+    rbs_b_g->angular_velocity = (euler - (*oldeuler))/fog_dt;
     
     /** Store the euler angle for the next iteration **/
     (*oldeuler)= euler;
@@ -300,105 +300,13 @@ void Task::xsens_samplesCallback(const base::Time &ts, const ::base::samples::IM
   return;
 }
 
-/**
- * @brief This function computes the discrete-time propagation of a quaternion
- * 
- * Quaternion propagation using the angular velocities as input. The function
- * computes the function 28, 29, 30a and 30b of the paper
- * J. L. Crassidis and F. L. Markley "Unscented filtering for spacecraft attitude estimation"
- *
- * @author Javier Hidalgo Carrio.
- *
- * @param[in, out] *quat pointer to the quaternion to propagate.
- * @param[in] *angvelo angular velocity vector.
- * @param[in] dt delta time is seconds.
- *
- * @return void
- *
- */
-void Task::PropagateHeadingQuaternion( Eigen::Quaternion <double> *quat, Eigen::Matrix<double, NUMAXIS , 1>* angvelo, double dt)
-{
-  register int j, l;
-  double auxvar;
-  Eigen::Matrix <double, NUMAXIS, NUMAXIS> Crossproduct;
-  Eigen::Matrix <double, QUATERSIZE, QUATERSIZE> Omega;
-  Eigen::Matrix< double, QUATERSIZE , 1  > q;
-  Eigen::Matrix <double, NUMAXIS, NUMAXIS> Upper;
-  Eigen::Matrix <double, NUMAXIS, 1> psi;
-  
-  Crossproduct = Eigen::Matrix <double, NUMAXIS, NUMAXIS>::Zero();
-  Omega = Eigen::Matrix <double, QUATERSIZE, QUATERSIZE>::Zero();
-  
-  /** If angular velocity is not zero **/
-  if ((double)(*angvelo).norm() != 0.00)
-  {
-    /** Copy the quaternion **/
-    q(3) = quat->w();
-    q(0) = quat->x();
-    q(1) = quat->y();
-    q(2) = quat->z();
-
-    /** Psi vector calculation **/
-    auxvar = sin (0.5*(*angvelo).norm()*dt);
-    psi(0) = (double) auxvar * ((*angvelo)(0)/(*angvelo).norm());
-    psi(1) = (double) auxvar * ((*angvelo)(1)/(*angvelo).norm());
-    psi(2) = (double) auxvar * ((*angvelo)(2)/(*angvelo).norm());
-
-    /** Create the cross-product matrix from the angular velocity **/
-    Crossproduct (0,1) = -psi(2);
-    Crossproduct (1,0) = psi(2);
-    Crossproduct (0,2) = psi(1);
-    Crossproduct (2,0) = -psi(1);
-    Crossproduct (1,2) = -psi(0);
-    Crossproduct (2,1) = psi(0);
-
-    /** Upper matrix **/
-    Upper = (double)cos(0.5*(*angvelo).norm()*(dt)) * Eigen::Matrix <double, NUMAXIS, NUMAXIS>::Identity() - Crossproduct;
-
-    /** Create the omega transition matrix **/
-    for (j=0; j<QUATERSIZE; j++) /** Columns **/
-    {
-      for (l=0; l<QUATERSIZE; l++) /** Rows **/
-      {
-	if (l<3)
-	{
-	  if (j<3)
-	    Omega (l,j) = Upper (l,j);
-	  else
-	    Omega (l,j) = psi (l);
-	}
-	else
-	{
-	  if (j<3)
-	    Omega (l,j) = -psi (j);
-	  else
-	    Omega (l,j) = (double)cos(0.5*(*angvelo).norm()*(dt));
-	}
-      }
-    }
-
-    /** Propagate forward in time, y = (A) x + y **/
-    q = Omega*q;
-    
-    /** Store the update quaternion in the argument quaternion **/
-    quat->w() = q(3);
-    quat->x() = q(0);
-    quat->y() = q(1);
-    quat->z() = q(2);
-    
-  }
-
-  //std::cout <<"q: "<<(*q)<<"\n";
-  
-  return;
-}
 
 
 /// The following lines are template definitions for the various state machine
-// hooks defined by Orocos::RTT. See Task.hpp for more detailed
+// hooks defined by Orocos::RTT. See IKFEstimator.hpp for more detailed
 // documentation about them.
 
-bool Task::configureHook()
+bool IKFEstimator::configureHook()
 {
   
   Eigen::Matrix <double,NUMAXIS,NUMAXIS> Ra; /**< Measurement noise convariance matrix for acc */
@@ -425,7 +333,7 @@ bool Task::configureHook()
   Rm(2,2) = pow(XSENSRWMAGZ/sqrt(_delta_time.value()),2);
 	
   /** Gravitational value according to the location **/
-  g = myikf->GravityModel (latitude, altitude);
+  g = BaseEstimator::GravityModel (latitude, altitude);
   
   /** Output port frames information */
   rbs_b_g->sourceFrame = "Body_Frame"; /** The body Frame in Source  */
@@ -434,29 +342,29 @@ bool Task::configureHook()
   /** Initial values for the IKF **/
   myikf->Init(&Ra, &Rg, &Rm, g, (double)_dip_angle.value());
   
-  return TaskBase::configureHook();;  
+  return IKFEstimatorBase::configureHook();;  
 }
-bool Task::startHook()
+bool IKFEstimator::startHook()
 {
-    if (! TaskBase::startHook())
+    if (! IKFEstimatorBase::startHook())
         return false;
     return true;
 }
-void Task::updateHook()
+void IKFEstimator::updateHook()
 {
-    TaskBase::updateHook();
+    IKFEstimatorBase::updateHook();
     
 }
-void Task::errorHook()
+void IKFEstimator::errorHook()
 {
-    TaskBase::errorHook();
+    IKFEstimatorBase::errorHook();
 }
-void Task::stopHook()
+void IKFEstimator::stopHook()
 {
-    TaskBase::stopHook();
+    IKFEstimatorBase::stopHook();
 }
-void Task::cleanupHook()
+void IKFEstimator::cleanupHook()
 {
-    TaskBase::cleanupHook();
+    IKFEstimatorBase::cleanupHook();
 }
 

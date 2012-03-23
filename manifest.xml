@@ -1,6 +1,6 @@
 <package>
-  <description brief="Orientation estimation using Indirect Kalman Filter">
-  Rock module/task in order to use the IKF library. It uses de XSens MTi and the FOG to estimate orientation.	
+  <description brief="Collection of Orientation Estimators ">
+  Rock module/task in order to estimate the orientation or attitude of a rigid body. It uses de Accelerometers and Gyroscopes to estimate orientation.	
   </description>
   <author>Javier Hidalgo Carrio/javier.hidalgo_carrio@dfki.de</author>
   <license></license>
