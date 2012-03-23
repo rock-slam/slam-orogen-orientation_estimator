@@ -111,21 +111,19 @@ void IKFEstimator::fog_samplesCallback(const base::Time &ts, const ::base::sampl
 {
   
   Eigen::Matrix <double, NUMAXIS, 1> euler;
+  (*fog_gyros) = fog_samples_sample.gyro;
   
   if (init_attitude == true)
   {
     if (flag_fog_time == false)
     {
-      fog_time = (double)fog_samples_sample.time.toMilliseconds();
-      (*fog_gyros) = fog_samples_sample.gyro;
+      fog_time = (double)fog_samples_sample.time.toMilliseconds();      
       flag_fog_time = true;
     }
     else
     {     
       fog_dt = ((double)fog_samples_sample.time.toMilliseconds() - fog_time)/1000.00;
       fog_time = (double)fog_samples_sample.time.toMilliseconds();
-      
-      (*fog_gyros) = fog_samples_sample.gyro;
       
       /** Substract the Earth Rotation from the FOG output */
       BaseEstimator::SubstractEarthRotation (fog_gyros, head_q, _latitude.value());
@@ -227,7 +225,6 @@ void IKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
   Eigen::Quaternion <double> auxq;
   Eigen::Matrix <double, NUMAXIS, 1> euler;
   Eigen::Matrix <double, NUMAXIS, 1> heading;
-  double xsens_dt;
   
   if (init_attitude == true)
   {
@@ -316,22 +313,27 @@ bool IKFEstimator::configureHook()
   double altitude = (double)_altitude.value();
   double g;
   
+  
   /** Fill the matrices **/
   Ra = Matrix<double,NUMAXIS,NUMAXIS>::Zero();
-  Ra(0,0) = pow(XSENSRWACCX/sqrt(_delta_time.value()),2);
-  Ra(1,1) = pow(XSENSRWACCY/sqrt(_delta_time.value()),2);
-  Ra(2,2) = pow(XSENSRWACCZ/sqrt(_delta_time.value()),2);
+  Ra(0,0) = pow(_accrw.get()[0]/sqrt(_delta_time.value()),2);
+  Ra(1,1) = pow(_accrw.get()[1]/sqrt(_delta_time.value()),2);
+  Ra(2,2) = pow(_accrw.get()[2]/sqrt(_delta_time.value()),2);
   
   Rg = Matrix<double,NUMAXIS,NUMAXIS>::Zero();
-  Rg(0,0) = pow(XSENSRWGYROX/sqrt(_delta_time.value()),2);
-  Rg(1,1) = pow(XSENSRWGYROY/sqrt(_delta_time.value()),2);
-  Rg(2,2) = pow(XSENSRWGYROZ/sqrt(_delta_time.value()),2);
+  Rg(0,0) = pow(_gyrorw.get()[0]/sqrt(_delta_time.value()),2);
+  Rg(1,1) = pow(_gyrorw.get()[1]/sqrt(_delta_time.value()),2);
+  Rg(2,2) = pow(_gyrorw.get()[2]/sqrt(_delta_time.value()),2);
 
   Rm = Matrix<double,NUMAXIS,NUMAXIS>::Zero();
-  Rm(0,0) = pow(XSENSRWMAGX/sqrt(_delta_time.value()),2);
-  Rm(1,1) = pow(XSENSRWMAGY/sqrt(_delta_time.value()),2);
-  Rm(2,2) = pow(XSENSRWMAGZ/sqrt(_delta_time.value()),2);
-	
+  Rm(0,0) = pow(_magrw.get()[0]/sqrt(_delta_time.value()),2);
+  Rm(1,1) = pow(_magrw.get()[1]/sqrt(_delta_time.value()),2);
+  Rm(2,2) = pow(_magrw.get()[2]/sqrt(_delta_time.value()),2);
+
+/*  std::cout<< "Ra\n"<<Ra<<"\n";
+  std::cout<< "RG\n"<<Rg<<"\n";
+  std::cout<< "RM\n"<<Rm<<"\n";*/
+  
   /** Gravitational value according to the location **/
   g = BaseEstimator::GravityModel (latitude, altitude);
   

@@ -14,15 +14,19 @@ end
 #Initializes the CORBA communication layer
 Orocos.initialize
 
-Orocos.run('orientation_estimator', 'ikf_orientation_estimator') do 
+Orocos.run('orientation_estimator', 'ikf_orientation_estimator', 'ukf_orientation_estimator') do 
   
     # log all the output ports
     Orocos.log_all_ports 
-
+    Orocos.conf.load_dir('../config')
     
     # get the invidual tasks
     attitude_task = TaskContext.get 'orientation_estimator'
+    Orocos.conf.apply(attitude_task, ['default'], :override => true)
     ikf_attitude_task = TaskContext.get 'ikf_orientation_estimator'
+    Orocos.conf.apply(ikf_attitude_task, ['default'], :override => true	)
+    ukf_attitude_task = TaskContext.get 'ukf_orientation_estimator'
+    Orocos.conf.apply(ukf_attitude_task, ['default'], :override => true	)
      
      # connect the tasks to the logs
     log_replay = Orocos::Log::Replay.open( ARGV[0] ) 
@@ -47,13 +51,26 @@ Orocos.run('orientation_estimator', 'ikf_orientation_estimator') do
 	  sample      
     end
     
+    
+    #Mapping the inputs ports in the ukf orientation task
+    log_replay.xsens_imu.calibrated_sensors.connect_to( ukf_attitude_task.xsens_samples, :type => :buffer, :size => 10 )
+    log_replay.dsp3000.rotation.connect_to( ukf_attitude_task.fog_samples, :type => :buffer, :size => 10 )
+    log_replay.xsens_imu.orientation_samples.connect_to( ukf_attitude_task.xsens_orientation, :type => :buffer, :size => 10 ) do |sample|
+#             vizkit_rbs.updateRigidBodyState(sample)
+# 	sample.cov_position.data[0] = 5
+	  sample      
+    end
+    
 #     view3d.show
     
-    attitude_task.configure
-    attitude_task.start
+#     attitude_task.configure
+#     attitude_task.start
+#     
+#     ikf_attitude_task.configure
+#     ikf_attitude_task.start
     
-    ikf_attitude_task.configure
-    ikf_attitude_task.start
+    ukf_attitude_task.configure
+    ukf_attitude_task.start
     
     
      # open the log replay widget

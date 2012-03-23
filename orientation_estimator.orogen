@@ -141,8 +141,104 @@ task_context 'IKFEstimator' do
     
     #**** For Gyroscopes ****
 
-    property "gbiasof", "/base/Vector3d"
-	doc "bias offset in static regimen for the Gyroscopes"
+    property('gbiasof', '/base/Vector3d')
+	doc 'bias offset in static regimen for the Gyroscopes'
+    property "gyrorw", "/base/Vector3d"
+	doc "angle random walk for gyroscopes (rad/sqrt(s))"
+    property "gyrorrw", "/base/Vector3d"
+	doc "rate random walk for gyroscopes (rad/s/sqrt(s))"
+
+    #**** For Accelerometers ****
+    
+    property "abiasof", "/base/Vector3d"
+	doc 'bias offset in static regimen for the Accelerometers'
+    property "accrw", "/base/Vector3d"
+	doc "velocity random walk for accelerometers (m/s/sqrt(s))"
+    property "accrrw", "/base/Vector3d"
+	doc "acceleration random walk for accelerometers (m/s^2/sqrt(s))"
+
+    #**** Magnetometers ****
+
+    property "magrw", "/base/Vector3d"
+	doc "random walk for magnetometers"
+
+    #******************************
+    #**** Filter Properties *******
+    #******************************
+    property('delta_time', 'double', 0.01).
+	doc 'Time in s between position readings (aprox values for Xsens and FOG)'
+	doc 'This value is not used for the filter in the integration. This is only used for the noise matrices'
+
+    port_driven
+    
+end
+
+task_context 'UKFEstimator' do
+    needs_configuration
+
+    #******************************
+    #******* Input Ports **********
+    #******************************
+    input_port("xsens_orientation", "/base/samples/RigidBodyState").
+      needs_reliable_connection.
+      doc 'XSens init orientation in quaternion.'
+
+    input_port("fog_samples","/base/samples/IMUSensors").
+      needs_reliable_connection.
+      doc 'optic gyro angular velocity 1D (Z axis).'
+
+    input_port("xsens_samples", "/base/samples/IMUSensors").
+      needs_reliable_connection.
+      doc 'XSens data values (acc, gyros and magn).'
+
+    #******************************
+    #** Aggregator parameters ***** 
+    #******************************
+    stream_aligner() do
+	align_port("xsens_orientation", 0.01)
+	align_port("xsens_samples", 0.01)
+	align_port("fog_samples", 0.01)
+	max_latency(0.1)
+    end
+
+    #******************************
+    #******* Output Ports *********
+    #******************************
+    output_port('attitude_b_g', '/base/samples/RigidBodyState');
+      doc 'timestamped state vector holding orientation and angular velocity with respect to the Earth fixed frame (geographic frame).'
+    
+
+
+    #******************************
+    #**** Location Properties *****
+    #******************************
+    property('latitude', 'double', 0.926478944).
+	doc 'Latitude of Bremen in radians (equivalent to 53.083333 degrees).'
+
+    property('longitude', 'double', 0.153588974).
+	doc 'Longitude of Bremen in radians (equivalent to 8.8 degrees).'
+
+    property('altitude', 'double', 12).
+	doc 'Altitude of Bremen in meters'
+
+    property('magnetic_declination', 'double', 0.023561944).
+	doc 'Bremen magnetic declination in radians (equivalent to 1.35 degrees EAST).'
+
+    property('magnetic_declination_mode', 'int', 1).
+	doc 'The declination is positive when the magnetic north is east of true north'
+	doc '1 is EAST, which means positive declination. 2 is WEST, which means negative declination.'
+
+    property('dip_angle', 'double', 1.187696556).
+	doc 'Dip angle of Bremen in radians (equivalent to 68.05 degrees ).'    
+
+    #******************************
+    #**** Sensor Properties *****
+    #******************************
+    
+    #**** For Gyroscopes ****
+
+    property('gbiasof', '/base/Vector3d')
+	doc 'bias offset in static regimen for the Gyroscopes'
     property "gyrorw", "/base/Vector3d"
 	doc "angle random walk for gyroscopes (rad/sqrt(s))"
     property "gyrorrw", "/base/Vector3d"
@@ -165,14 +261,7 @@ task_context 'IKFEstimator' do
 	doc 'This value is not used for the filter in the integration. This is only used for the noise matrices'
 
     port_driven
-    
-end
 
-task_context 'UKFEstimator' do
-    needs_configuration
-
-
-    
 end
 
 

@@ -31,24 +31,7 @@ namespace orientation_estimator {
     #define FOGRRW 1.90e-08 /** FOG Rate Ramdom walk (white noise in angular acc) **/
     
     /** Xsens MTi defines **/
-    #define XSENSBIASGYROX 6.911825e-03 /** Xsens gyro X Initial bias offset **/
-    #define XSENSBIASGYROY 1.202073e-01 /** Xsens gyro Y Initial bias offset **/
-    #define XSENSBIASGYROZ -1.881326e-06 /** Xsens gyro Z Initial bias offset **/
-    
-    #define XSENSRWGYROX 0.0006898864 /** Xsens random walk gyro X **/
-    #define XSENSRWGYROY 0.0007219069 /** Xsens random walk gyro Y **/
-    #define XSENSRWGYROZ 0.0005708627 /** Xsens random walk gyro Z **/
-    #define XSENSRWGYROS (XSENSRWGYROX+XSENSRWGYROY+XSENSRWGYROZ)/3/**<Mean random walk for the gyros in rad/sqrt(s) **/
-    
-    #define XSENSRWACCX 0.0010310305 /** Xsens random walk acc X **/
-    #define XSENSRWACCY 0.001318912 /** Xsens random walk acc Y **/
-    #define XSENSRWACCZ 0.0011245297 /** Xsens random walk acc Z **/
-    #define XSENSRWACCS (XSENSRWACCX+XSENSRWACCY+XSENSRWACCZ)/3
-    
-    #define XSENSRWMAGX 0.0004290766 /** Xsens random walk mag X **/
-    #define XSENSRWMAGY 9.21e-005 /** Xsens random walk mag Y **/
-    #define XSENSRWMAGZ 1.06e-004 /** Xsens random walk mag Z **/
-    #define XSENSRWMAGS (XSENSRWACCX+XSENSRWACCY+XSENSRWACCZ)/3
+    /** The values are in the configuration file **/
 
     /*! \class IKFEstimator 
      * \brief The task context provides and requires services. It uses an ExecutionEngine to perform its functions.
@@ -70,7 +53,7 @@ namespace orientation_estimator {
     protected:
 
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-	double xsens_time; /**< Delta time coming for Xsens values */
+	double xsens_time, xsens_dt; /**< Delta time coming for Xsens values */
 	double fog_time, fog_dt; /**< Delta time coming for FOG values */
 	bool flag_xsens_time, flag_fog_time, init_attitude; /** Control flags */
 	Eigen::Matrix <double,NUMAXIS,1> *xsens_gyros; /**< Gyroscopes from Xsens */
@@ -78,7 +61,7 @@ namespace orientation_estimator {
 	Eigen::Matrix <double,NUMAXIS,1> *xsens_mag; /**< Magnetometers from Xsens */
 	Eigen::Matrix <double,NUMAXIS,1> *fog_gyros; /**< Angular velocity for the FOG */
 	Eigen::Quaternion <double> *head_q; /**< Quaternion for the yaw (heading) */
-	filter::ikf *myikf; /**< The adaptive extended kalman filter */
+	filter::ikf *myikf; /**< The adaptive Indirect kalman filter */
 	base::samples::RigidBodyState *rbs_b_g; /**< Output RigidBody State containin the orientation and angular velocity of the body */
 	Eigen::Matrix <double, NUMAXIS, 1> *oldeuler; /**< Euler angles for the velocity stimation */
 	
