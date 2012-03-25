@@ -69,8 +69,8 @@ Orocos.run('orientation_estimator', 'ikf_orientation_estimator', 'ukf_orientatio
     ikf_attitude_task.configure
     ikf_attitude_task.start
     
-#     ukf_attitude_task.configure
-#     ukf_attitude_task.start
+    ukf_attitude_task.configure
+    ukf_attitude_task.start
     
     
      # open the log replay widget

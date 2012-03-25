@@ -259,7 +259,7 @@ void IKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
     euler = myikf->getEuler();
     
     /** Out in the Outports  */
-    rbs_b_g->time = xsens_samples_sample.time; /** Set the timestamp */
+    rbs_b_g->time = base::Time::now(); /** Set the timestamp */
     
     /** Orientation (Pitch and Roll from IKF, Yaw from FOG) */
     euler[2] = head_q->toRotationMatrix().eulerAngles(2,1,0)[0];//YAW
