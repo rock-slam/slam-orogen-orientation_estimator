@@ -73,10 +73,15 @@ Orocos.run('orientation_estimator', 'ikf_orientation_estimator', 'ukf_orientatio
     ukf_attitude_task.start
     
     
+#     Vizkit.display attitude_task.attitude_b_g,:orientation => "degrees",:widget=>"Plot2d"
+
      # open the log replay widget
     control = Vizkit.control log_replay
     control.speed = 1 #4
 #     control.auto_replay
     Vizkit.exec
+    
+    
+
     
 end

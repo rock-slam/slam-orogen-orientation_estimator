@@ -187,7 +187,7 @@ void BaseEstimator::xsens_orientationCallback(const base::Time &ts, const ::base
 			Eigen::AngleAxisd((*euler)[2], Eigen::Vector3d::UnitZ()));
 
 	/** Out in the Outports  */
-	rbs_b_g->time = base::Time::now(); /** Set the timestamp */
+	rbs_b_g->time = xsens_orientation_sample.time; //base::Time::now(); /** Set the timestamp */
 
 	/** Write in the output port **/
 	_attitude_b_g.write((*rbs_b_g));

@@ -230,12 +230,12 @@ void UKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
     std::cout<<"xsens_samplesCallback" <<"\n";
     
     /** Copy the sensor information */
-//     (*gyros)[0] = xsens_samples_sample.gyro[0];
-//     (*gyros)[1] = xsens_samples_sample.gyro[1];
-    (*gyros) = xsens_samples_sample.gyro;
+     (*gyros)[0] = xsens_samples_sample.gyro[0];
+     (*gyros)[1] = xsens_samples_sample.gyro[1];
+//     (*gyros) = xsens_samples_sample.gyro;
     (*acc) = xsens_samples_sample.acc;
     
-    
+    std::cout << "gyros:\n"<<(*gyros)<<"\n";
     
     if (init_attitude == true)
     {
@@ -256,12 +256,12 @@ void UKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
 	    
 	    /** Perform the Unscented Kalman Filter */
 	    myukf->predict (gyros, xsens_dt);
-	    myukf->update (acc, acc);
+	    //myukf->update (acc, acc);
 	}
 
 
 	/** Out in the Outports  */
-	rbs_b_g->time = base::Time::now(); /** Set the timestamp */
+	rbs_b_g->time = xsens_samples_sample.time; //base::Time::now(); /** Set the timestamp */
 
 	/** Copy to the rigid_body_state **/
 	rbs_b_g->orientation = (base::Orientation) qb_g;

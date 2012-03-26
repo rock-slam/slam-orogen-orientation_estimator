@@ -259,12 +259,12 @@ void IKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
     euler = myikf->getEuler();
     
     /** Out in the Outports  */
-    rbs_b_g->time = base::Time::now(); /** Set the timestamp */
+    rbs_b_g->time = xsens_samples_sample.time; //base::Time::now(); /** Set the timestamp */
     
     /** Orientation (Pitch and Roll from IKF, Yaw from FOG) */
     euler[2] = head_q->toRotationMatrix().eulerAngles(2,1,0)[0];//YAW
     
-    //std::cout << "(Roll, Pitch, Yaw)\n"<< euler[0]*R2D<<","<< euler[1]*R2D<<","<< euler[2]*R2D<<"\n";
+    std::cout << "(Roll, Pitch, Yaw)\n"<< euler[0]*R2D<<","<< euler[1]*R2D<<","<< euler[2]*R2D<<"\n";
      
     auxq = Eigen::Quaternion <double> (Eigen::AngleAxisd(euler[0], Eigen::Vector3d::UnitX())*
  			    Eigen::AngleAxisd(euler[1], Eigen::Vector3d::UnitY()) *
