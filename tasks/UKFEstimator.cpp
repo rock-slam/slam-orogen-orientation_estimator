@@ -235,6 +235,7 @@ void UKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
 //     (*gyros) = xsens_samples_sample.gyro;
     (*acc) = xsens_samples_sample.acc;
     
+    
     std::cout << "gyros:\n"<<(*gyros)<<"\n";
     
     if (init_attitude == true)
