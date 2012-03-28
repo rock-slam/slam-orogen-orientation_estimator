@@ -243,7 +243,10 @@ void IKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
 
       /** Copy the sensor information */
       (*xsens_gyros) = xsens_samples_sample.gyro;
+      
+      /** Orientation (Pitch and Roll from IKF, Yaw from FOG) */
       (*xsens_gyros)[2] = (*fog_gyros)[2];
+      
       (*xsens_acc) = xsens_samples_sample.acc;
       (*xsens_mag) = xsens_samples_sample.mag;
 
@@ -262,7 +265,6 @@ void IKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
     /** Out in the Outports  */
     rbs_b_g->time = xsens_samples_sample.time; //base::Time::now(); /** Set the timestamp */
     
-    /** Orientation (Pitch and Roll from IKF, Yaw from FOG) */
 //     euler[2] = head_q->toRotationMatrix().eulerAngles(2,1,0)[0];//YAW
     
     std::cout << "(Roll, Pitch, Yaw)\n"<< euler[0]*R2D<<","<< euler[1]*R2D<<","<< euler[2]*R2D<<"\n";
