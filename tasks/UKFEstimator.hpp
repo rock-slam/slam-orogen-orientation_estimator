@@ -4,7 +4,7 @@
 #define ORIENTATION_ESTIMATOR_UKFESTIMATOR_TASK_HPP
 
 #include "orientation_estimator/UKFEstimatorBase.hpp"
-#include <quater_ukf/ukf.hpp> /**< IKF header file*/
+#include <quater_ukf/ukf.hpp> /**< UKF header file*/
 
 namespace orientation_estimator {
 
@@ -48,7 +48,7 @@ namespace orientation_estimator {
 	
 	double xsens_time, xsens_dt; /**< Delta time coming for Xsens values */
 	double fog_time, fog_dt; /**< Delta time coming for FOG values */
-	bool flag_xsens_time, flag_fog_time, init_attitude, flag_fog; /** Control flags */
+	bool flag_xsens_time, flag_fog_time, init_attitude; /** Control flags */
 	filter::ukf *myukf; /**< The Unscented kalman filter */
 	Eigen::Matrix <double,NUMAXIS,1> *gyros; /**< Gyroscopes */
 	Eigen::Matrix <double,NUMAXIS,1> *acc; /**< Acceleremeters */

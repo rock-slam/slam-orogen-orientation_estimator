@@ -112,7 +112,7 @@ void BaseEstimator::fog_samplesCallback(const base::Time &ts, const ::base::samp
       
       BaseEstimator::PropagateHeadingQuaternion (head_q, &fog_gyros, fog_dt);
       
-      /** Get the Yaw from the FOG **/
+      /** Get the Yaw from the FOG integration **/
       (*euler)[2] = head_q->toRotationMatrix().eulerAngles(2,1,0)[0];//YAW
 //        std::cout << "fog_gyros: "<< fog_gyros[2] <<"\n";
 //       std::cout << "Heading(FOG): "<< (*euler)[2]*(180.00/PI) <<"\n";
@@ -171,9 +171,9 @@ void BaseEstimator::xsens_orientationCallback(const base::Time &ts, const ::base
 	(*euler)[1] = attitude.toRotationMatrix().eulerAngles(2,1,0)[1];//PITCH
 	(*euler)[0] = attitude.toRotationMatrix().eulerAngles(2,1,0)[2];//ROLL
 
-// 	std::cout << "Orientation (Quaternion): "<< attitude.w()<<","<<attitude.x()<<","<<attitude.y()<<","<<attitude.z()<<"\n";
-// 	std::cout << "(Roll, Pitch, Yaw)\n"<< (*euler)*(180.00/PI) <<"\n";
-// 	std::cout << "**********************\n";
+	std::cout << "BaseEstimator Orientation (Quaternion): "<< attitude.w()<<","<<attitude.x()<<","<<attitude.y()<<","<<attitude.z()<<"\n";
+	std::cout << "(Roll, Pitch, Yaw)\n"<< (*euler)*(180.00/PI) <<"\n";
+	std::cout << "**********************\n";
 
 	/** Write the Angular velocity (as the different between two orientations in radians)*/
 	rbs_b_g->angular_velocity = ((*euler) - (*oldeuler))/fog_dt;
@@ -182,10 +182,13 @@ void BaseEstimator::xsens_orientationCallback(const base::Time &ts, const ::base
 	(*oldeuler)= (*euler);
 
 	/** Convert attitude to quaternion **/
-	rbs_b_g->orientation =  Eigen::Quaternion <double> (Eigen::AngleAxisd((*euler)[0], Eigen::Vector3d::UnitX())*
+	rbs_b_g->orientation =  Eigen::Quaternion <double> (Eigen::AngleAxisd((*euler)[2], Eigen::Vector3d::UnitZ())*
 			Eigen::AngleAxisd((*euler)[1], Eigen::Vector3d::UnitY()) *
-			Eigen::AngleAxisd((*euler)[2], Eigen::Vector3d::UnitZ()));
-
+			Eigen::AngleAxisd((*euler)[0], Eigen::Vector3d::UnitX()));
+	
+	/** Also update the quaternion used by the fog callback function **/
+	(*head_q) = rbs_b_g->orientation;
+	
 	/** Out in the Outports  */
 	rbs_b_g->time = xsens_orientation_sample.time; //base::Time::now(); /** Set the timestamp */
 

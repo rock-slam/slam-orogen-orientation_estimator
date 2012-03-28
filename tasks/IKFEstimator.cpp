@@ -125,15 +125,15 @@ void IKFEstimator::fog_samplesCallback(const base::Time &ts, const ::base::sampl
       fog_dt = ((double)fog_samples_sample.time.toMilliseconds() - fog_time)/1000.00;
       fog_time = (double)fog_samples_sample.time.toMilliseconds();
       
-      /** Substract the Earth Rotation from the FOG output */
-      BaseEstimator::SubstractEarthRotation (fog_gyros, head_q, _latitude.value());
-      
-      /** Only in the Yaw (Z-axis) are the FOG angular velocity ) */
-      (*fog_gyros)[0] = 0.00;
-      (*fog_gyros)[1] = 0.00;
-      (*fog_gyros)[2] = (*fog_gyros)[2] - _gbiasof.get()[2];
-      
-      BaseEstimator::PropagateHeadingQuaternion (head_q, fog_gyros, fog_dt);
+//       /** Substract the Earth Rotation from the FOG output */
+//       BaseEstimator::SubstractEarthRotation (fog_gyros, head_q, _latitude.value());
+//       
+//       /** Only in the Yaw (Z-axis) are the FOG angular velocity ) */
+//       (*fog_gyros)[0] = 0.00;
+//       (*fog_gyros)[1] = 0.00;
+//       (*fog_gyros)[2] = (*fog_gyros)[2] - _gbiasof.get()[2];
+//       
+//       BaseEstimator::PropagateHeadingQuaternion (head_q, fog_gyros, fog_dt);
       
       //myikf->Quaternion2Euler(head_q, &euler);
       /*euler[2] = quat->toRotationMatrix().eulerAngles(2,1,0)[0];//YAW
@@ -173,7 +173,7 @@ void IKFEstimator::xsens_orientationCallback(const base::Time &ts, const ::base:
    
    if (init_attitude == false)
    {
-     std::cout << "******** Init Attitude *******\n";
+     std::cout << "******** Init Attitude IKFEstimator *******\n";
      /** Eliminate the Magnetic declination from the initial attitude quaternion **/
      BaseEstimator::CorrectMagneticDeclination (&attitude, _magnetic_declination.value(), _magnetic_declination_mode.value());
      
@@ -243,6 +243,7 @@ void IKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
 
       /** Copy the sensor information */
       (*xsens_gyros) = xsens_samples_sample.gyro;
+      (*xsens_gyros)[2] = (*fog_gyros)[2];
       (*xsens_acc) = xsens_samples_sample.acc;
       (*xsens_mag) = xsens_samples_sample.mag;
 
@@ -252,7 +253,7 @@ void IKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
       
       /** Perform the Indirect Kalman Filter */
       myikf->predict (xsens_gyros, xsens_dt);
-      myikf->update (xsens_acc, xsens_mag);
+      myikf->update (xsens_acc, xsens_mag, false);
     }
     
     /** Get Attitude en Euler **/
@@ -262,19 +263,22 @@ void IKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
     rbs_b_g->time = xsens_samples_sample.time; //base::Time::now(); /** Set the timestamp */
     
     /** Orientation (Pitch and Roll from IKF, Yaw from FOG) */
-    euler[2] = head_q->toRotationMatrix().eulerAngles(2,1,0)[0];//YAW
+//     euler[2] = head_q->toRotationMatrix().eulerAngles(2,1,0)[0];//YAW
     
     std::cout << "(Roll, Pitch, Yaw)\n"<< euler[0]*R2D<<","<< euler[1]*R2D<<","<< euler[2]*R2D<<"\n";
      
-    auxq = Eigen::Quaternion <double> (Eigen::AngleAxisd(euler[0], Eigen::Vector3d::UnitX())*
+    auxq = Eigen::Quaternion <double> (Eigen::AngleAxisd(euler[2], Eigen::Vector3d::UnitZ())*
  			    Eigen::AngleAxisd(euler[1], Eigen::Vector3d::UnitY()) *
- 			    Eigen::AngleAxisd(euler[2], Eigen::Vector3d::UnitZ())); //Roll, Pitch and Yaw in this order
+ 			    Eigen::AngleAxisd(euler[0], Eigen::Vector3d::UnitX())); //Roll, Pitch and Yaw in this order
     
     /** Copy to the rigid_body_state **/
     rbs_b_g->orientation = (base::Orientation) auxq;
     
+    /** Also update the quaternion used by the fog callback function **/
+    (*head_q) = auxq;
+    
     /** Write the Angular velocity (as the different between two orientations in radians)*/
-    rbs_b_g->angular_velocity = (euler - (*oldeuler))/fog_dt;
+    rbs_b_g->angular_velocity = (euler - (*oldeuler))/xsens_dt;
     
     /** Store the euler angle for the next iteration **/
     (*oldeuler)= euler;

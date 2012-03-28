@@ -65,12 +65,12 @@ Orocos.run('orientation_estimator', 'ikf_orientation_estimator', 'ukf_orientatio
     
     attitude_task.configure
     attitude_task.start
-    
+     
     ikf_attitude_task.configure
     ikf_attitude_task.start
-    
-#     ukf_attitude_task.configure
-#     ukf_attitude_task.start
+
+    ukf_attitude_task.configure
+    ukf_attitude_task.start
     
     
 #     Vizkit.display attitude_task.attitude_b_g,:orientation => "degrees",:widget=>"Plot2d"

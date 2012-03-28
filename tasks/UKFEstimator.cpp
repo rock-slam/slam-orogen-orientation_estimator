@@ -46,9 +46,7 @@ UKFEstimator::UKFEstimator(std::string const& name)
 
     flag_xsens_time  = false;
     flag_fog_time  = false;
-    init_attitude = false;
-    flag_fog = false;
-  
+    init_attitude = false;  
 }
 
 /**
@@ -97,8 +95,7 @@ UKFEstimator::~UKFEstimator()
  */
 void UKFEstimator::fog_samplesCallback(const base::Time &ts, const ::base::samples::IMUSensors &fog_samples_sample)
 {
-    Eigen::Quaternion <double> attitude = myukf->getAttitude ();
-    Eigen::Matrix <double,STATEVECTORSIZE,1> x_state;
+    Eigen::Quaternion <double> qb_g;
     
     std::cout<<"fog_samplesCallback" <<"\n";
     
@@ -117,34 +114,34 @@ void UKFEstimator::fog_samplesCallback(const base::Time &ts, const ::base::sampl
 	}
 	else
 	{   
-	    if (flag_fog == true)
-	    {
-		std::cout<<"fog: TRUE \n";
-		/** Timing update **/
-		fog_dt += ((double)fog_samples_sample.time.toMilliseconds() - fog_time)/1000.00;
-		fog_time = (double)fog_samples_sample.time.toMilliseconds();
-		
-		/** Copy the sensor information doing the mean value*/
-		(*gyros)[2] += fog_samples_sample.gyro[2];
-		(*gyros)[2] = (*gyros)[2] / 2;
-	    }
-	    else
-	    {
-		/** Timing update **/
-		fog_dt = ((double)fog_samples_sample.time.toMilliseconds() - fog_time)/1000.00;
-		fog_time = (double)fog_samples_sample.time.toMilliseconds();
-		
-		/** Copy the sensor information */
-		(*gyros)[2] = fog_samples_sample.gyro[2];
-	    }	   
-	}
-	std::cout<<"fog_flag: " << flag_fog  << "\n";
-	std::cout<<"fog: " << (*gyros)[2]  << "\n";
-	std::cout<<"fog_dt: " << fog_dt << "\n";
-	std::cout<<"fog_time: " << fog_time << "\n";
+	    /** Timing update **/
+	    fog_dt = ((double)fog_samples_sample.time.toMilliseconds() - fog_time)/1000.00;
+	    fog_time = (double)fog_samples_sample.time.toMilliseconds();
+	    
 	
-	flag_fog = true;
+	    /** Copy the sensor information */
+	    (*gyros)[2] = fog_samples_sample.gyro[2];
+	    (*gyros)[1] = 0.00;
+	    (*gyros)[0] = 0.00;
+	    
+	    
+	    qb_g = myukf->getAttitude();
+	    
+	    BaseEstimator::SubstractEarthRotation (gyros, &qb_g, _latitude.value());
+	    
+	    (*gyros)[1] = 0.00;
+	    (*gyros)[0] = 0.00;
+	    
+	    std::cout<<"fog: " << (*gyros)[2]  << "\n";
+	    std::cout<<"fog_dt: " << fog_dt << "\n";
+	    std::cout<<"fog_time: " << fog_time << "\n";
+	    
+	    myukf->predict (gyros, fog_dt);
+	    myukf->attitudeUpdate ();
 
+	}
+	
+	std::cout << "*************************\n";
     }
 
   return;
@@ -178,7 +175,7 @@ void UKFEstimator::xsens_orientationCallback(const base::Time &ts, const ::base:
 
     if (init_attitude == false)
     {
-	std::cout << "******** Init Attitude *******\n";
+	std::cout << "******** Init Attitude UKFEstimator *******\n";
 	/** Eliminate the Magnetic declination from the initial attitude quaternion  (because the initial quaternion from Xsens come from Magn) **/
 	BaseEstimator::CorrectMagneticDeclination (&attitude, _magnetic_declination.value(), _magnetic_declination_mode.value());
 	
@@ -194,10 +191,7 @@ void UKFEstimator::xsens_orientationCallback(const base::Time &ts, const ::base:
 	std::cout << "(Roll, Pitch, Yaw)\n"<< euler*R2D <<"\n";
 	std::cout << "**********************\n";
 	
-	(*oldeuler) = euler;
-	
-	flag_fog = false;
-	
+	(*oldeuler) = euler;	
     }
 
     return;
@@ -230,9 +224,10 @@ void UKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
     std::cout<<"xsens_samplesCallback" <<"\n";
     
     /** Copy the sensor information */
-     (*gyros)[0] = xsens_samples_sample.gyro[0];
-     (*gyros)[1] = xsens_samples_sample.gyro[1];
-//     (*gyros) = xsens_samples_sample.gyro;
+    (*gyros)[0] = xsens_samples_sample.gyro[0];
+    (*gyros)[1] = xsens_samples_sample.gyro[1];
+    (*gyros)[2] = 0.00;
+    
     (*acc) = xsens_samples_sample.acc;
     
     
@@ -254,15 +249,20 @@ void UKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
 	    /** Substract the Earth Rotation from the gyros output */
 	    qb_g = myukf->getAttitude(); /** Rotation with respect to the geographic frame (North-Up-West) */
 	    BaseEstimator::SubstractEarthRotation (gyros, &qb_g, _latitude.value());
+	    (*gyros)[2] = 0.00;
 	    
 	    /** Perform the Unscented Kalman Filter */
-	    myukf->predict (gyros, xsens_dt);
-	    //myukf->update (acc, acc);
+ 	    myukf->predict (gyros, xsens_dt);
+// 	    myukf->attitudeUpdate ();
+	    myukf->update (acc, acc);
 	}
 
 
 	/** Out in the Outports  */
 	rbs_b_g->time = xsens_samples_sample.time; //base::Time::now(); /** Set the timestamp */
+	
+	/** Get attitude from the filter **/
+	qb_g = myukf->getAttitude();
 
 	/** Copy to the rigid_body_state **/
 	rbs_b_g->orientation = (base::Orientation) qb_g;
@@ -271,7 +271,7 @@ void UKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
 	euler = myukf->getEuler();
 
 	/** Write the Angular velocity (as the different between two orientations in radians)*/
-	rbs_b_g->angular_velocity = (euler - (*oldeuler))/fog_dt;
+	rbs_b_g->angular_velocity = (euler - (*oldeuler))/xsens_dt;
 
 	/** Store the euler angle for the next iteration **/
 	(*oldeuler)= euler;
@@ -279,9 +279,9 @@ void UKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
 	/** Write in the OROCOS Ports */
 	_attitude_b_g.write((*rbs_b_g));
 	
-	flag_fog = false;
-
     }
+    
+    std::cout << "*************************\n";
   
   return;
 }
@@ -293,11 +293,11 @@ void UKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
 
 bool UKFEstimator::configureHook()
 {
-    Eigen::Matrix <double,STATEVECTORSIZE, STATEVECTORSIZE> P_0; /**< Initial State covariance matrix */
+    Eigen::Matrix <double,UKFSTATEVECTORSIZE, UKFSTATEVECTORSIZE> P_0; /**< Initial State covariance matrix */
     Eigen::Quaternion <double> at_q;  /**< Attitude quaternion. Note the order of the arguments: the real w coefficient first, while internally the coefficients are stored in the following order: [x, y, z, w] */
-    Eigen::Matrix <double,STATEVECTORSIZE, STATEVECTORSIZE> Q; /**< Process noise covariance matrix */
+    Eigen::Matrix <double,UKFSTATEVECTORSIZE, UKFSTATEVECTORSIZE> Q; /**< Process noise covariance matrix */
     Eigen::Matrix <double,NUMAXIS, NUMAXIS>  R; /**< Measurements noise variance and covar matrix */
-    Eigen::Matrix <double,STATEVECTORSIZE,1> x_0; /**< Initial state vector */
+    Eigen::Matrix <double,UKFSTATEVECTORSIZE,1> x_0; /**< Initial state vector */
     Eigen::Matrix <double,NUMAXIS,1> sigma_gyrosrw; 
     Eigen::Matrix <double,NUMAXIS,1> sigma_gyrosrrw;
     double latitude = (double)_latitude.value();
@@ -321,11 +321,11 @@ bool UKFEstimator::configureHook()
     
     /** Fill the matrices **/
     R = Matrix<double,NUMAXIS,NUMAXIS>::Zero();
-    R(0,0) = pow(_accrw.get()[0]/sqrt(_delta_time.value()),2);
-    R(1,1) = pow(_accrw.get()[1]/sqrt(_delta_time.value()),2);
-    R(2,2) = pow(_accrw.get()[2]/sqrt(_delta_time.value()),2);
+    R(0,0) = 0.025;//pow(_accrw.get()[0]/sqrt(_delta_time.value()),2);
+    R(1,1) = 0.025;//pow(_accrw.get()[1]/sqrt(_delta_time.value()),2);
+    R(2,2) = 0.025;//pow(_accrw.get()[2]/sqrt(_delta_time.value()),2);
 
-    Q = Matrix<double,STATEVECTORSIZE,STATEVECTORSIZE>::Zero();
+    Q = Matrix<double,UKFSTATEVECTORSIZE,UKFSTATEVECTORSIZE>::Zero();
     Q(0,0) = pow(sigma_gyrosrw[0], 2)-(1.0/6.0)*pow(sigma_gyrosrrw[0], 2)*pow(_delta_time.value(), 2);
     Q(1,1) = pow(sigma_gyrosrw[1], 2)-(1.0/6.0)*pow(sigma_gyrosrrw[1], 2)*pow(_delta_time.value(), 2);
     Q(2,2) = pow(sigma_gyrosrw[2], 2)-(1.0/6.0)*pow(sigma_gyrosrrw[2], 2)*pow(_delta_time.value(), 2);
@@ -334,12 +334,15 @@ bool UKFEstimator::configureHook()
     Q(5,5) = (_delta_time.value()*0.5)*pow(sigma_gyrosrrw[2], 2);
     Q = Q * (_delta_time.value() / 2.0);
     
-    P_0 = Matrix<double,STATEVECTORSIZE,STATEVECTORSIZE>::Zero();
-    P_0(3,3) = 0.01;
-    P_0(4,4) = 0.01;
-    P_0(5,5) = 0.01;
+    P_0 = Matrix<double,UKFSTATEVECTORSIZE,UKFSTATEVECTORSIZE>::Zero();
+    P_0(0,0) = 0.0025;
+    P_0(1,1) = 0.0025;
+    P_0(2,2) = 0.0025;
+    P_0(3,3) = 0.0000000000001;
+    P_0(4,4) = 0.0000000000001;
+    P_0(5,5) = 0.0000000000001;
 
-    x_0 << 0,0,0,0.1,0.1,0.1;
+    x_0 << 0,0,0,0.0,0.0,0.0;
     
     at_q = Eigen::Quaternion<double>::Identity();
     
