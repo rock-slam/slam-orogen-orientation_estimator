@@ -110,6 +110,7 @@ void BaseEstimator::fog_samplesCallback(const base::Time &ts, const ::base::samp
       fog_gyros[1] = 0.00;
       fog_gyros[2] = fog_gyros[2] - _gbiasof.get()[2];
       
+      /** This integration step is good when dog_dt is small **/
       BaseEstimator::PropagateHeadingQuaternion (head_q, &fog_gyros, fog_dt);
       
       /** Get the Yaw from the FOG integration **/

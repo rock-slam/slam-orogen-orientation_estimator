@@ -124,7 +124,8 @@ void IKFEstimator::fog_samplesCallback(const base::Time &ts, const ::base::sampl
     {     
       fog_dt = ((double)fog_samples_sample.time.toMilliseconds() - fog_time)/1000.00;
       fog_time = (double)fog_samples_sample.time.toMilliseconds();
-      
+    
+      /** Commented because the integration is done at the xsens callback **/
 //       /** Substract the Earth Rotation from the FOG output */
 //       BaseEstimator::SubstractEarthRotation (fog_gyros, head_q, _latitude.value());
 //       
@@ -245,7 +246,7 @@ void IKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
       (*xsens_gyros) = xsens_samples_sample.gyro;
       
       /** Orientation (Pitch and Roll from IKF, Yaw from FOG) */
-      (*xsens_gyros)[2] = (*fog_gyros)[2];
+      (*xsens_gyros)[2] = (*fog_gyros)[2]; /** In this version the FOG interation is done at the same time than the xsens **/
       
       (*xsens_acc) = xsens_samples_sample.acc;
       (*xsens_mag) = xsens_samples_sample.mag;
@@ -265,7 +266,7 @@ void IKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
     /** Out in the Outports  */
     rbs_b_g->time = xsens_samples_sample.time; //base::Time::now(); /** Set the timestamp */
     
-//     euler[2] = head_q->toRotationMatrix().eulerAngles(2,1,0)[0];//YAW
+//     euler[2] = head_q->toRotationMatrix().eulerAngles(2,1,0)[0];//YAW /** This is done when the integration is in the fog callback **/
     
     std::cout << "(Roll, Pitch, Yaw)\n"<< euler[0]*R2D<<","<< euler[1]*R2D<<","<< euler[2]*R2D<<"\n";
      
@@ -277,7 +278,7 @@ void IKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
     rbs_b_g->orientation = (base::Orientation) auxq;
     
     /** Also update the quaternion used by the fog callback function **/
-    (*head_q) = auxq;
+    //(*head_q) = auxq; /** Uncomment if the integration is done in the fog callback **/
     
     /** Write the Angular velocity (as the different between two orientations in radians)*/
     rbs_b_g->angular_velocity = (euler - (*oldeuler))/xsens_dt;
@@ -302,8 +303,6 @@ void IKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
   }
   return;
 }
-
-
 
 /// The following lines are template definitions for the various state machine
 // hooks defined by Orocos::RTT. See IKFEstimator.hpp for more detailed
