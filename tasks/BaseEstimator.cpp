@@ -172,9 +172,9 @@ void BaseEstimator::xsens_orientationCallback(const base::Time &ts, const ::base
 	(*euler)[1] = attitude.toRotationMatrix().eulerAngles(2,1,0)[1];//PITCH
 	(*euler)[0] = attitude.toRotationMatrix().eulerAngles(2,1,0)[2];//ROLL
 
-	std::cout << "BaseEstimator Orientation (Quaternion): "<< attitude.w()<<","<<attitude.x()<<","<<attitude.y()<<","<<attitude.z()<<"\n";
-	std::cout << "(Roll, Pitch, Yaw)\n"<< (*euler)*(180.00/PI) <<"\n";
-	std::cout << "**********************\n";
+// 	std::cout << "BaseEstimator Orientation (Quaternion): "<< attitude.w()<<","<<attitude.x()<<","<<attitude.y()<<","<<attitude.z()<<"\n";
+// 	std::cout << "(Roll, Pitch, Yaw)\n"<< (*euler)*(180.00/PI) <<"\n";
+// 	std::cout << "**********************\n";
 
 	/** Write the Angular velocity (as the different between two orientations in radians)*/
 	rbs_b_g->angular_velocity = ((*euler) - (*oldeuler))/fog_dt;
