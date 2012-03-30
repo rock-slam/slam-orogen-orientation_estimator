@@ -32,7 +32,7 @@ gbiasof:
   data: 
   - 6.911825e-03
   - 1.202073e-01
-  - -1.881326e-06
+  - 0.00 #-1.881326e-06
 # no documentation available for this property
 gyrorrw: 
   data: 

@@ -32,7 +32,7 @@ gbiasof:
   data: 
   - 6.911825e-03
   - 1.202073e-01
-  - -1.881326e-06
+  - 0.00 #-1.881326e-06
 # no documentation available for this property
 gyrorrw: 
   data: 
@@ -44,7 +44,7 @@ gyrorw:
   data: 
   - 0.0006898864
   - 0.0007219069
-  - 0.0005708627
+  - 1.32e-05    #0.0005708627 #xsens
 # Latitude of Bremen in radians (equivalent to 53.083333 degrees).
 latitude: 0.926478944
 # Longitude of Bremen in radians (equivalent to 8.8 degrees).

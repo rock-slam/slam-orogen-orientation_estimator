@@ -162,7 +162,7 @@ void BaseEstimator::xsens_orientationCallback(const base::Time &ts, const ::base
 	/** Store the euler angle for the first time **/
 	(*oldeuler)= (*euler);
 
-	std::cout << "Orientation (Quaternion): "<< attitude.w()<<","<<attitude.x()<<","<<attitude.y()<<","<<attitude.z()<<"\n";
+	std::cout << "BaseEstimator Orientation (Quaternion): "<< attitude.w()<<","<<attitude.x()<<","<<attitude.y()<<","<<attitude.z()<<"\n";
 	std::cout << "(Roll, Pitch, Yaw)\n"<< (*euler)*(180.00/PI) <<"\n";
 	std::cout << "**********************\n";
    }

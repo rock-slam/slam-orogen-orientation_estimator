@@ -47,6 +47,7 @@ IKFEstimator::IKFEstimator(std::string const& name)
   rbs_b_g = new base::samples::RigidBodyState;
   oldeuler = new Eigen::Matrix <double, NUMAXIS, 1>;
   myikf = new ikf;
+  fogikf = new ikf;
   
   backup = new base::samples::IMUSensors;
   
@@ -69,6 +70,9 @@ IKFEstimator::~IKFEstimator()
   /** Free filter object **/
   delete myikf;
   myikf = NULL;
+  
+  delete fogikf;
+  fogikf = NULL;
   
   delete xsens_gyros;
   xsens_gyros = NULL;
@@ -126,21 +130,16 @@ void IKFEstimator::fog_samplesCallback(const base::Time &ts, const ::base::sampl
       fog_time = (double)fog_samples_sample.time.toMilliseconds();
     
       /** Commented because the integration is done at the xsens callback **/
-//       /** Substract the Earth Rotation from the FOG output */
-//       BaseEstimator::SubstractEarthRotation (fog_gyros, head_q, _latitude.value());
-//       
-//       /** Only in the Yaw (Z-axis) are the FOG angular velocity ) */
-//       (*fog_gyros)[0] = 0.00;
-//       (*fog_gyros)[1] = 0.00;
-//       (*fog_gyros)[2] = (*fog_gyros)[2] - _gbiasof.get()[2];
-//       
-//       BaseEstimator::PropagateHeadingQuaternion (head_q, fog_gyros, fog_dt);
+      /** Substract the Earth Rotation from the FOG output */
+      BaseEstimator::SubstractEarthRotation (fog_gyros, head_q, _latitude.value());
       
-      //myikf->Quaternion2Euler(head_q, &euler);
-      /*euler[2] = quat->toRotationMatrix().eulerAngles(2,1,0)[0];//YAW
-      euler[1] = quat->toRotationMatrix().eulerAngles(2,1,0)[1];//PITCH
-      euler[0] = quat->toRotationMatrix().eulerAngles(2,1,0)[2];//ROL*/
-     //std::cout << "Heading(FOG): "<< euler[2]*R2D <<"\n";
+      /** Only in the Yaw (Z-axis) are the FOG angular velocity ) */
+      (*fog_gyros)[0] = 0.00;
+      (*fog_gyros)[1] = 0.00;
+      (*fog_gyros)[2] = (*fog_gyros)[2] - _gbiasof.get()[2];
+      
+      fogikf->predict (fog_gyros, fog_dt);
+
 
     }
   }
@@ -180,12 +179,12 @@ void IKFEstimator::xsens_orientationCallback(const base::Time &ts, const ::base:
      
      /** Set the initial attitude quaternion of the IKF **/
      myikf->setAttitude (&attitude);
+     fogikf->setAttitude (&attitude);
      init_attitude = true;
      
      /** Fog quaternion initial value is also the IKF initial quaternion **/
      (*head_q) = myikf->getAttitude ();
      
-     //myikf->Quaternion2Euler(&attitude, &euler);
      
      euler[2] = attitude.toRotationMatrix().eulerAngles(2,1,0)[0];//YAW
      euler[1] = attitude.toRotationMatrix().eulerAngles(2,1,0)[1];//PITCH
@@ -243,17 +242,16 @@ void IKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
       xsens_time = (double)xsens_samples_sample.time.toMilliseconds();
 
       /** Copy the sensor information */
-      (*xsens_gyros) = xsens_samples_sample.gyro;
-      
-      /** Orientation (Pitch and Roll from IKF, Yaw from FOG) */
-      (*xsens_gyros)[2] = (*fog_gyros)[2]; /** In this version the FOG interation is done at the same time than the xsens **/
-      
+      (*xsens_gyros) = xsens_samples_sample.gyro;          
       (*xsens_acc) = xsens_samples_sample.acc;
       (*xsens_mag) = xsens_samples_sample.mag;
 
       /** Substract the Earth Rotation from the gyros output */
       qb_g = myikf->getAttitude(); /** Rotation with respect to the geographic frame (North-Up-West) */
       BaseEstimator::SubstractEarthRotation (xsens_gyros, &qb_g, _latitude.value());
+      
+      /** Orientation (Pitch and Roll from IKF, Yaw from FOG) */
+      (*xsens_gyros)[2] = 0.00;
       
       /** Perform the Indirect Kalman Filter */
       myikf->predict (xsens_gyros, xsens_dt);
@@ -266,9 +264,11 @@ void IKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
     /** Out in the Outports  */
     rbs_b_g->time = xsens_samples_sample.time; //base::Time::now(); /** Set the timestamp */
     
-//     euler[2] = head_q->toRotationMatrix().eulerAngles(2,1,0)[0];//YAW /** This is done when the integration is in the fog callback **/
+    euler[2] = ((Eigen::Matrix <double, NUMAXIS, 1>) fogikf->getEuler())[2];
     
+    std::cout << "IKFEstimator\n";
     std::cout << "(Roll, Pitch, Yaw)\n"<< euler[0]*R2D<<","<< euler[1]*R2D<<","<< euler[2]*R2D<<"\n";
+    std::cout << "**********************\n";
      
     auxq = Eigen::Quaternion <double> (Eigen::AngleAxisd(euler[2], Eigen::Vector3d::UnitZ())*
  			    Eigen::AngleAxisd(euler[1], Eigen::Vector3d::UnitY()) *
@@ -277,8 +277,11 @@ void IKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
     /** Copy to the rigid_body_state **/
     rbs_b_g->orientation = (base::Orientation) auxq;
     
+    /** Copy to covariance to the rigid_body_state **/
+    rbs_b_g->cov_orientation = myikf->getCovariance().block<NUMAXIS, NUMAXIS>(0,0);
+    
     /** Also update the quaternion used by the fog callback function **/
-    //(*head_q) = auxq; /** Uncomment if the integration is done in the fog callback **/
+    (*head_q) = auxq;
     
     /** Write the Angular velocity (as the different between two orientations in radians)*/
     rbs_b_g->angular_velocity = (euler - (*oldeuler))/xsens_dt;
@@ -311,45 +314,62 @@ void IKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
 bool IKFEstimator::configureHook()
 {
   
-  Eigen::Matrix <double,NUMAXIS,NUMAXIS> Ra; /**< Measurement noise convariance matrix for acc */
-  Eigen::Matrix <double,NUMAXIS,NUMAXIS> Rg; /**< Measurement noise convariance matrix for gyros */
-  Eigen::Matrix <double,NUMAXIS,NUMAXIS> Rm; /**< Measurement noise convariance matrix for mag */
-  double latitude = (double)_latitude.value();
-  double altitude = (double)_altitude.value();
-  double g;
-  
-  
-  /** Fill the matrices **/
-  Ra = Matrix<double,NUMAXIS,NUMAXIS>::Zero();
-  Ra(0,0) = pow(_accrw.get()[0]/sqrt(_delta_time.value()),2);
-  Ra(1,1) = pow(_accrw.get()[1]/sqrt(_delta_time.value()),2);
-  Ra(2,2) = pow(_accrw.get()[2]/sqrt(_delta_time.value()),2);
-  
-  Rg = Matrix<double,NUMAXIS,NUMAXIS>::Zero();
-  Rg(0,0) = pow(_gyrorw.get()[0]/sqrt(_delta_time.value()),2);
-  Rg(1,1) = pow(_gyrorw.get()[1]/sqrt(_delta_time.value()),2);
-  Rg(2,2) = pow(_gyrorw.get()[2]/sqrt(_delta_time.value()),2);
+    Eigen::Matrix <double,NUMAXIS,NUMAXIS> Ra; /**< Measurement noise convariance matrix for acc */
+    Eigen::Matrix <double,NUMAXIS,NUMAXIS> Rg; /**< Measurement noise convariance matrix for gyros */
+    Eigen::Matrix <double,NUMAXIS,NUMAXIS> Rm; /**< Measurement noise convariance matrix for mag */
+    Eigen::Matrix <double,IKFSTATEVECTORSIZE,IKFSTATEVECTORSIZE> P_0; /**< Initial covariance matrix **/
+    Eigen:: Matrix <double,NUMAXIS,NUMAXIS> Qbg;
+    Eigen:: Matrix <double,NUMAXIS,NUMAXIS> Qba;
+    double latitude = (double)_latitude.value();
+    double altitude = (double)_altitude.value();
+    double g;
 
-  Rm = Matrix<double,NUMAXIS,NUMAXIS>::Zero();
-  Rm(0,0) = pow(_magrw.get()[0]/sqrt(_delta_time.value()),2);
-  Rm(1,1) = pow(_magrw.get()[1]/sqrt(_delta_time.value()),2);
-  Rm(2,2) = pow(_magrw.get()[2]/sqrt(_delta_time.value()),2);
 
-/*  std::cout<< "Ra\n"<<Ra<<"\n";
-  std::cout<< "RG\n"<<Rg<<"\n";
-  std::cout<< "RM\n"<<Rm<<"\n";*/
+    /** Fill the matrices **/
+    Ra = Matrix<double,NUMAXIS,NUMAXIS>::Zero();
+    Ra(0,0) = 0.050;
+    Ra(1,1) = 0.050;
+    Ra(2,2) = 0.050;
+    
+//     Ra(0,0) = pow(_accrw.get()[0]/sqrt(_delta_time.value()),2);
+//     Ra(1,1) = pow(_accrw.get()[1]/sqrt(_delta_time.value()),2);
+//     Ra(2,2) = pow(_accrw.get()[2]/sqrt(_delta_time.value()),2);
+
+    Rg = Matrix<double,NUMAXIS,NUMAXIS>::Zero();
+    Rg(0,0) = pow(_gyrorw.get()[0]/sqrt(_delta_time.value()),2);
+    Rg(1,1) = pow(_gyrorw.get()[1]/sqrt(_delta_time.value()),2);
+    Rg(2,2) = pow(_gyrorw.get()[2]/sqrt(_delta_time.value()),2);
+
+    Rm = Matrix<double,NUMAXIS,NUMAXIS>::Zero();
+    Rm(0,0) = pow(_magrw.get()[0]/sqrt(_delta_time.value()),2);
+    Rm(1,1) = pow(_magrw.get()[1]/sqrt(_delta_time.value()),2);
+    Rm(2,2) = pow(_magrw.get()[2]/sqrt(_delta_time.value()),2);
   
-  /** Gravitational value according to the location **/
-  g = BaseEstimator::GravityModel (latitude, altitude);
-  
-  /** Output port frames information */
-  rbs_b_g->sourceFrame = "Body_Frame"; /** The body Frame in Source  */
-  rbs_b_g->targetFrame = "Geographic_Frame (North-West-Up)"; /** The Geographic Frame in Target */
-  
-  /** Initial values for the IKF **/
-  myikf->Init(&Ra, &Rg, &Rm, g, (double)_dip_angle.value());
-  
-  return IKFEstimatorBase::configureHook();;  
+    /** Initial error covariance **/
+    P_0 = Eigen::Matrix <double,IKFSTATEVECTORSIZE,IKFSTATEVECTORSIZE>::Zero();
+    P_0.block <NUMAXIS, NUMAXIS> (0,0) = 0.001 * Matrix <double,NUMAXIS,NUMAXIS>::Identity();
+    P_0.block <NUMAXIS, NUMAXIS> (3,3) = 0.00001 * Matrix <double,NUMAXIS,NUMAXIS>::Identity();
+    P_0.block <NUMAXIS, NUMAXIS> (6,6) = 0.00001 * Matrix <double,NUMAXIS,NUMAXIS>::Identity();
+    
+    Qbg = 0.00000000001 * Matrix <double,NUMAXIS,NUMAXIS>::Identity();
+    Qba = 0.00000000001 * Matrix <double,NUMAXIS,NUMAXIS>::Identity();
+
+    std::cout<< "Ra\n"<<Ra<<"\n";
+    std::cout<< "Rg\n"<<Rg<<"\n";
+    std::cout<< "Rm\n"<<Rm<<"\n";
+    std::cout<< "P_0\n"<<P_0<<"\n";
+
+    /** Gravitational value according to the location **/
+    g = BaseEstimator::GravityModel (latitude, altitude);
+
+    /** Output port frames information */
+    rbs_b_g->sourceFrame = "Body_Frame"; /** The body Frame in Source  */
+    rbs_b_g->targetFrame = "Geographic_Frame (North-West-Up)"; /** The Geographic Frame in Target */
+
+    /** Initial values for the IKF **/
+    myikf->Init(&P_0, &Ra, &Rg, &Rm, &Qbg, &Qba, g, (double)_dip_angle.value());
+
+    return IKFEstimatorBase::configureHook();;  
 }
 bool IKFEstimator::startHook()
 {

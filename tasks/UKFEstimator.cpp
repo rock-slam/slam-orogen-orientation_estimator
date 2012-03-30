@@ -267,6 +267,9 @@ void UKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
 	/** Copy to the rigid_body_state **/
 	rbs_b_g->orientation = (base::Orientation) qb_g;
 	
+	/** Copy to covariance to the rigid_body_state **/
+	rbs_b_g->cov_orientation = myukf->getCovariance().block<NUMAXIS, NUMAXIS>(0,0);
+	
 	/** Get Attitude en Euler **/
 	euler = myukf->getEuler();
 
@@ -321,9 +324,9 @@ bool UKFEstimator::configureHook()
     
     /** Fill the matrices **/
     R = Matrix<double,NUMAXIS,NUMAXIS>::Zero();
-    R(0,0) = 0.025;//pow(_accrw.get()[0]/sqrt(_delta_time.value()),2);
-    R(1,1) = 0.025;//pow(_accrw.get()[1]/sqrt(_delta_time.value()),2);
-    R(2,2) = 0.025;//pow(_accrw.get()[2]/sqrt(_delta_time.value()),2);
+    R(0,0) = 0.020;//pow(_accrw.get()[0]/sqrt(_delta_time.value()),2);
+    R(1,1) = 0.020;//pow(_accrw.get()[1]/sqrt(_delta_time.value()),2);
+    R(2,2) = 0.020;//pow(_accrw.get()[2]/sqrt(_delta_time.value()),2);
 
     Q = Matrix<double,UKFSTATEVECTORSIZE,UKFSTATEVECTORSIZE>::Zero();
     Q(0,0) = pow(sigma_gyrosrw[0], 2)-(1.0/6.0)*pow(sigma_gyrosrrw[0], 2)*pow(_delta_time.value(), 2);
