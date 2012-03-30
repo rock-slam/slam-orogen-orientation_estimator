@@ -266,9 +266,9 @@ void IKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
     
     euler[2] = ((Eigen::Matrix <double, NUMAXIS, 1>) fogikf->getEuler())[2];
     
-    std::cout << "IKFEstimator\n";
-    std::cout << "(Roll, Pitch, Yaw)\n"<< euler[0]*R2D<<","<< euler[1]*R2D<<","<< euler[2]*R2D<<"\n";
-    std::cout << "**********************\n";
+//     std::cout << "IKFEstimator\n";
+//     std::cout << "(Roll, Pitch, Yaw)\n"<< euler[0]*R2D<<","<< euler[1]*R2D<<","<< euler[2]*R2D<<"\n";
+//     std::cout << "**********************\n";
      
     auxq = Eigen::Quaternion <double> (Eigen::AngleAxisd(euler[2], Eigen::Vector3d::UnitZ())*
  			    Eigen::AngleAxisd(euler[1], Eigen::Vector3d::UnitY()) *
@@ -354,10 +354,10 @@ bool IKFEstimator::configureHook()
     Qbg = 0.00000000001 * Matrix <double,NUMAXIS,NUMAXIS>::Identity();
     Qba = 0.00000000001 * Matrix <double,NUMAXIS,NUMAXIS>::Identity();
 
-    std::cout<< "Ra\n"<<Ra<<"\n";
-    std::cout<< "Rg\n"<<Rg<<"\n";
-    std::cout<< "Rm\n"<<Rm<<"\n";
-    std::cout<< "P_0\n"<<P_0<<"\n";
+//     std::cout<< "Ra\n"<<Ra<<"\n";
+//     std::cout<< "Rg\n"<<Rg<<"\n";
+//     std::cout<< "Rm\n"<<Rm<<"\n";
+//     std::cout<< "P_0\n"<<P_0<<"\n";
 
     /** Gravitational value according to the location **/
     g = BaseEstimator::GravityModel (latitude, altitude);

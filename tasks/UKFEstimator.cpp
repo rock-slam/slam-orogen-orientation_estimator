@@ -96,9 +96,7 @@ UKFEstimator::~UKFEstimator()
 void UKFEstimator::fog_samplesCallback(const base::Time &ts, const ::base::samples::IMUSensors &fog_samples_sample)
 {
     Eigen::Quaternion <double> qb_g;
-    
-    std::cout<<"fog_samplesCallback" <<"\n";
-    
+        
     if (init_attitude == true)
     {	
 	if (flag_fog_time == false)
@@ -131,18 +129,12 @@ void UKFEstimator::fog_samplesCallback(const base::Time &ts, const ::base::sampl
 	    
 	    (*gyros)[1] = 0.00;
 	    (*gyros)[0] = 0.00;
-	    
-	    std::cout<<"fog: " << (*gyros)[2]  << "\n";
-	    std::cout<<"fog_dt: " << fog_dt << "\n";
-	    std::cout<<"fog_time: " << fog_time << "\n";
-	    
+    
 	    myukf->predict (gyros, fog_dt);
 	    myukf->attitudeUpdate ();
 
 	}
-	
-	std::cout << "*************************\n";
-    }
+	    }
 
   return;
 }
@@ -170,8 +162,6 @@ void UKFEstimator::xsens_orientationCallback(const base::Time &ts, const ::base:
     Eigen::Quaternion <double> attitude (xsens_orientation_sample.orientation.w(), xsens_orientation_sample.orientation.x(),
     xsens_orientation_sample.orientation.y(), xsens_orientation_sample.orientation.z());
     Eigen::Matrix <double, NUMAXIS, 1> euler;
-
-    std::cout<<"xsens_orientationCallback" <<"\n";
 
     if (init_attitude == false)
     {
@@ -220,8 +210,6 @@ void UKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
 
     Eigen::Quaternion <double> qb_g;
     Eigen::Matrix <double, NUMAXIS, 1> euler;
-
-    std::cout<<"xsens_samplesCallback" <<"\n";
     
     /** Copy the sensor information */
     (*gyros)[0] = xsens_samples_sample.gyro[0];
@@ -230,9 +218,7 @@ void UKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
     
     (*acc) = xsens_samples_sample.acc;
     
-    
-    std::cout << "gyros:\n"<<(*gyros)<<"\n";
-    
+        
     if (init_attitude == true)
     {
 	if (flag_xsens_time == false)
@@ -253,7 +239,6 @@ void UKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
 	    
 	    /** Perform the Unscented Kalman Filter */
  	    myukf->predict (gyros, xsens_dt);
-// 	    myukf->attitudeUpdate ();
 	    myukf->update (acc, acc);
 	}
 
@@ -283,9 +268,7 @@ void UKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
 	_attitude_b_g.write((*rbs_b_g));
 	
     }
-    
-    std::cout << "*************************\n";
-  
+      
   return;
 }
 
@@ -349,9 +332,9 @@ bool UKFEstimator::configureHook()
     
     at_q = Eigen::Quaternion<double>::Identity();
     
-    std::cout<< "R\n"<<R<<"\n";
-    std::cout<< "Q\n"<<Q<<"\n";
-    std::cout<< "P_0\n"<<P_0<<"\n";
+//     std::cout<< "R\n"<<R<<"\n";
+//     std::cout<< "Q\n"<<Q<<"\n";
+//     std::cout<< "P_0\n"<<P_0<<"\n";
 
     /** Gravitational value according to the location **/
     g = BaseEstimator::GravityModel (latitude, altitude);
