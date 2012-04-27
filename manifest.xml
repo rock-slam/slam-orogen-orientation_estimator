@@ -1,6 +1,7 @@
 <package>
   <description brief="Collection of Orientation Estimators ">
-  Rock module/task in order to estimate the orientation or attitude of a rigid body. It uses de Accelerometers and Gyroscopes to estimate orientation.	
+  Rock module/task in order to estimate the orientation or attitude of a rigid body. It uses de Accelerometers and Gyroscopes to estimate orientation.
+  Currently this component has three different orientation estimators tasks: BaseEstimator, IKFEstimator and UKFEstimator.
   </description>
   <author>Javier Hidalgo Carrio/javier.hidalgo_carrio@dfki.de</author>
   <license></license>
