@@ -332,13 +332,10 @@ bool IKFEstimator::configureHook()
     
     /** Fill the matrices **/
     Ra = Matrix<double,NUMAXIS,NUMAXIS>::Zero();
-    Ra(0,0) = 0.050;
-    Ra(1,1) = 0.050;
-    Ra(2,2) = 0.050;
     
-//     Ra(0,0) = pow(_accrw.get()[0]/sqrt(_delta_time.value()),2);
-//     Ra(1,1) = pow(_accrw.get()[1]/sqrt(_delta_time.value()),2);
-//     Ra(2,2) = pow(_accrw.get()[2]/sqrt(_delta_time.value()),2);
+    Ra(0,0) = pow(_accrw.get()[0]/sqrt(_delta_time.value()),2);
+    Ra(1,1) = pow(_accrw.get()[1]/sqrt(_delta_time.value()),2);
+    Ra(2,2) = pow(_accrw.get()[2]/sqrt(_delta_time.value()),2);
 
     Rg = Matrix<double,NUMAXIS,NUMAXIS>::Zero();
     Rg(0,0) = pow(_gyrorw.get()[0]/sqrt(_delta_time.value()),2);
@@ -359,7 +356,7 @@ bool IKFEstimator::configureHook()
     Qbg = 0.00000000001 * Matrix <double,NUMAXIS,NUMAXIS>::Identity();
     Qba = 0.00000000001 * Matrix <double,NUMAXIS,NUMAXIS>::Identity();
 
-//     std::cout<< "Ra\n"<<Ra<<"\n";
+//      std::cout<< "Ra\n"<<Ra<<"\n";
 //     std::cout<< "Rg\n"<<Rg<<"\n";
 //     std::cout<< "Rm\n"<<Rm<<"\n";
 //     std::cout<< "P_0\n"<<P_0<<"\n";

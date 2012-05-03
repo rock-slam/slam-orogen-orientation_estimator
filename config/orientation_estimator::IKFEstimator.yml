@@ -14,9 +14,9 @@ accrrw:
 # no documentation available for this property
 accrw: 
   data: 
-  - 0.0010310305
-  - 0.001318912
-  - 0.0011245297
+  - 0.02236
+  - 0.02236
+  - 0.02236 # the resulting variance of 0.050 work weel for Dagon
 # maximum latency, in seconds, of the stream aligner. The aligner will start dropping samples if the difference between the last output and last input is greater than this
 aggregator_max_latency: 0.1
 # Altitude of Bremen in meters
@@ -27,6 +27,7 @@ delta_time: 0.01
 dip_angle: 1.187696556
 # minimum time, in s, between two sequential samples arrive on fog_samples
 fog_samples_period: 0.01
+
 # no documentation available for this property
 gbiasof: 
   data: 

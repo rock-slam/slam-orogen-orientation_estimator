@@ -14,9 +14,9 @@ accrrw:
 # no documentation available for this property
 accrw: 
   data: 
-  - 0.0010310305
-  - 0.001318912
-  - 0.0011245297
+  - 0.0141421
+  - 0.0141421
+  - 0.0141421 #the resulting variance between 0.020 and 0.050 works weel for Dagon
 # maximum latency, in seconds, of the stream aligner. The aligner will start dropping samples if the difference between the last output and last input is greater than this
 aggregator_max_latency: 0.1
 # Altitude of Bremen in meters
