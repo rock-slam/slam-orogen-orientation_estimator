@@ -23,5 +23,5 @@ magnetic_declination: 0.023561944
 magnetic_declination_mode: 1
 # minimum system time in s between two status readings
 stream_aligner_status_period: 1.0
-# minimum time, in s, between two sequential samples arrive on xsens_orientation
-xsens_orientation_period: 0.01
+# minimum time, in s, between two sequential samples arrive on imu_orientation
+imu_orientation_period: 0.01

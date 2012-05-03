@@ -125,7 +125,7 @@ void BaseEstimator::fog_samplesCallback(const base::Time &ts, const ::base::samp
 }
 
 /**
- * @brief Xsens orientation callback function
+ * @brief IMU orientation callback function
  * 
  * This function performs the callback of the StreamAlligner for the 
  * orientation coming from the Xsens quaternion
@@ -136,16 +136,16 @@ void BaseEstimator::fog_samplesCallback(const base::Time &ts, const ::base::samp
  * @author Javier Hidalgo Carrio.
  *
  * @param[in] &ts timestamp
- * @param[in] &xsens_samples_sample Xsens sensor quaternion.
+ * @param[in] &imu_samples_sample Xsens sensor quaternion.
  *
  * @return void
  *
  */
-void BaseEstimator::xsens_orientationCallback(const base::Time &ts, const ::base::samples::RigidBodyState &xsens_orientation_sample)
+void BaseEstimator::imu_orientationCallback(const base::Time &ts, const ::base::samples::RigidBodyState &imu_orientation_sample)
 {
   
-  Eigen::Quaternion <double> attitude (xsens_orientation_sample.orientation.w(), xsens_orientation_sample.orientation.x(),
-    xsens_orientation_sample.orientation.y(), xsens_orientation_sample.orientation.z());
+  Eigen::Quaternion <double> attitude (imu_orientation_sample.orientation.w(), imu_orientation_sample.orientation.x(),
+    imu_orientation_sample.orientation.y(), imu_orientation_sample.orientation.z());
   
    if (init_attitude == false)
    {
@@ -191,7 +191,7 @@ void BaseEstimator::xsens_orientationCallback(const base::Time &ts, const ::base
 	(*head_q) = rbs_b_g->orientation;
 	
 	/** Out in the Outports  */
-	rbs_b_g->time = xsens_orientation_sample.time; //base::Time::now(); /** Set the timestamp */
+	rbs_b_g->time = imu_orientation_sample.time; //base::Time::now(); /** Set the timestamp */
 
 	/** Write in the output port **/
 	_attitude_b_g.write((*rbs_b_g));
@@ -369,6 +369,25 @@ bool BaseEstimator::configureHook()
   rbs_b_g->sourceFrame = "Body_Frame"; /** The body Frame in Source  */
   rbs_b_g->targetFrame = "Geographic_Frame (North-West-Up)"; /** The Geographic Frame in Target */
   
+  if (_imu_orientation.connected())
+  {
+      RTT::log(RTT::Info) << "IMU is connected" << RTT::endlog();
+  }
+  else
+  {
+      RTT::log(RTT::Warning) << "IMU NO connected" << RTT::endlog();
+      RTT::log(RTT::Error) << "Potential malfunction on the Task" << RTT::endlog();
+  }
+  
+  if (_fog_samples.connected())
+  {
+      RTT::log(RTT::Info) << "FOG is connected" << RTT::endlog();
+  }
+  else
+  {
+      RTT::log(RTT::Warning) << "FOG NO connected" << RTT::endlog();
+  }
+      
   return BaseEstimatorBase::configureHook();;  
 }
 bool BaseEstimator::startHook()

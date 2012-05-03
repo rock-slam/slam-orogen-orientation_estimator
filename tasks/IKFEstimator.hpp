@@ -53,12 +53,12 @@ namespace orientation_estimator {
     protected:
 
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-	double xsens_time, xsens_dt; /**< Delta time coming for Xsens values */
+	double imu_time, imu_dt; /**< Delta time coming for Xsens values */
 	double fog_time, fog_dt; /**< Delta time coming for FOG values */
-	bool flag_xsens_time, flag_fog_time, init_attitude; /** Control flags */
-	Eigen::Matrix <double,NUMAXIS,1> *xsens_gyros; /**< Gyroscopes from Xsens */
-	Eigen::Matrix <double,NUMAXIS,1> *xsens_acc; /**< Acceleremeters from Xsens */
-	Eigen::Matrix <double,NUMAXIS,1> *xsens_mag; /**< Magnetometers from Xsens */
+	bool flag_imu_time, flag_fog_time, init_attitude; /** Control flags */
+	Eigen::Matrix <double,NUMAXIS,1> *imu_gyros; /**< Gyroscopes from Xsens */
+	Eigen::Matrix <double,NUMAXIS,1> *imu_acc; /**< Acceleremeters from Xsens */
+	Eigen::Matrix <double,NUMAXIS,1> *imu_mag; /**< Magnetometers from Xsens */
 	Eigen::Matrix <double,NUMAXIS,1> *fog_gyros; /**< Angular velocity for the FOG */
 	Eigen::Quaternion <double> *head_q; /**< Quaternion for the yaw (heading) */
 	filter::ikf *myikf; /**< The adaptive Indirect kalman filter */
@@ -97,12 +97,12 @@ namespace orientation_estimator {
 	* @author Javier Hidalgo Carrio.
 	*
 	* @param[in] &ts timestamp
-	* @param[in] &xsens_samples_sample Xsens sensor quaternion.
+	* @param[in] &imu_samples_sample Xsens sensor quaternion.
 	*
 	* @return void
 	*
 	*/
-        virtual void xsens_orientationCallback(const base::Time &ts, const ::base::samples::RigidBodyState &xsens_orientation_sample);
+        virtual void imu_orientationCallback(const base::Time &ts, const ::base::samples::RigidBodyState &imu_orientation_sample);
 	
 	/**
 	* @brief Xsens callback function
@@ -117,12 +117,12 @@ namespace orientation_estimator {
 	* @author Javier Hidalgo Carrio.
 	*
 	* @param[in] &ts timestamp
-	* @param[in] &xsens_samples_sample Xsens sensor values.
+	* @param[in] &imu_samples_sample Xsens sensor values.
 	*
 	* @return void
 	*
 	*/
-        virtual void xsens_samplesCallback(const base::Time &ts, const ::base::samples::IMUSensors &xsens_samples_sample);
+        virtual void imu_samplesCallback(const base::Time &ts, const ::base::samples::IMUSensors &imu_samples_sample);
 	
 
 

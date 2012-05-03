@@ -40,12 +40,12 @@ Orocos.run('orientation_estimator', 'ikf_orientation_estimator', 'ukf_orientatio
     
     #Mapping the inputs ports in the orientation task
     log_replay.dsp3000.rotation.connect_to( attitude_task.fog_samples, :type => :buffer, :size => 10 )
-    log_replay.xsens_imu.orientation_samples.connect_to( attitude_task.xsens_orientation, :type => :buffer, :size => 10 )
+    log_replay.xsens_imu.orientation_samples.connect_to( attitude_task.imu_orientation, :type => :buffer, :size => 10 )
  
     #Mapping the inputs ports in the ikf orientation task
-    log_replay.xsens_imu.calibrated_sensors.connect_to( ikf_attitude_task.xsens_samples, :type => :buffer, :size => 10 )
+    log_replay.xsens_imu.calibrated_sensors.connect_to( ikf_attitude_task.imu_samples, :type => :buffer, :size => 10 )
     log_replay.dsp3000.rotation.connect_to( ikf_attitude_task.fog_samples, :type => :buffer, :size => 10 )
-    log_replay.xsens_imu.orientation_samples.connect_to( ikf_attitude_task.xsens_orientation, :type => :buffer, :size => 10 ) do |sample|
+    log_replay.xsens_imu.orientation_samples.connect_to( ikf_attitude_task.imu_orientation, :type => :buffer, :size => 10 ) do |sample|
 #             vizkit_rbs.updateRigidBodyState(sample)
 # 	sample.cov_position.data[0] = 5
 	  sample      
@@ -53,9 +53,9 @@ Orocos.run('orientation_estimator', 'ikf_orientation_estimator', 'ukf_orientatio
     
     
     #Mapping the inputs ports in the ukf orientation task
-    log_replay.xsens_imu.calibrated_sensors.connect_to( ukf_attitude_task.xsens_samples, :type => :buffer, :size => 10 )
+    log_replay.xsens_imu.calibrated_sensors.connect_to( ukf_attitude_task.imu_samples, :type => :buffer, :size => 10 )
     log_replay.dsp3000.rotation.connect_to( ukf_attitude_task.fog_samples, :type => :buffer, :size => 10 )
-    log_replay.xsens_imu.orientation_samples.connect_to( ukf_attitude_task.xsens_orientation, :type => :buffer, :size => 10 ) do |sample|
+    log_replay.xsens_imu.orientation_samples.connect_to( ukf_attitude_task.imu_orientation, :type => :buffer, :size => 10 ) do |sample|
 #             vizkit_rbs.updateRigidBodyState(sample)
 # 	sample.cov_position.data[0] = 5
 	  sample      

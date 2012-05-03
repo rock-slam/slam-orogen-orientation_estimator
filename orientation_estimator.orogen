@@ -14,9 +14,9 @@ task_context 'BaseEstimator' do
     #******************************
     #******* Input Ports **********
     #******************************
-    input_port("xsens_orientation", "/base/samples/RigidBodyState").
+    input_port("imu_orientation", "/base/samples/RigidBodyState").
       needs_reliable_connection.
-      doc 'XSens init orientation in quaternion.'
+      doc 'IMU(XSens) init orientation in quaternion.'
 
     input_port("fog_samples","/base/samples/IMUSensors").
       needs_reliable_connection.
@@ -26,7 +26,7 @@ task_context 'BaseEstimator' do
     #** Aggregator parameters ***** 
     #******************************
     stream_aligner() do
-	align_port("xsens_orientation", 0.01)
+	align_port("imu_orientation", 0.01)
 	align_port("fog_samples", 0.01)
 	max_latency(0.3)
     end
@@ -80,24 +80,24 @@ task_context 'IKFEstimator' do
     #******************************
     #******* Input Ports **********
     #******************************
-    input_port("xsens_orientation", "/base/samples/RigidBodyState").
+    input_port("imu_orientation", "/base/samples/RigidBodyState").
       needs_reliable_connection.
-      doc 'XSens init orientation in quaternion.'
+      doc 'IMU (XSens) init orientation in quaternion.'
 
     input_port("fog_samples","/base/samples/IMUSensors").
       needs_reliable_connection.
       doc 'optic gyro angular velocity 1D (Z axis).'
 
-    input_port("xsens_samples", "/base/samples/IMUSensors").
+    input_port("imu_samples", "/base/samples/IMUSensors").
       needs_reliable_connection.
-      doc 'XSens data values (acc, gyros and magn).'
+      doc 'IMU data values (acc, gyros and magn).'
 
     #******************************
     #** Aggregator parameters ***** 
     #******************************
     stream_aligner() do
-	align_port("xsens_orientation", 0.01)
-	align_port("xsens_samples", 0.01)
+	align_port("imu_orientation", 0.01)
+	align_port("imu_samples", 0.01)
 	align_port("fog_samples", 0.01)
 	max_latency(0.1)
     end
@@ -179,24 +179,24 @@ task_context 'UKFEstimator' do
     #******************************
     #******* Input Ports **********
     #******************************
-    input_port("xsens_orientation", "/base/samples/RigidBodyState").
+    input_port("imu_orientation", "/base/samples/RigidBodyState").
       needs_reliable_connection.
-      doc 'XSens init orientation in quaternion.'
+      doc 'IMU(XSens) init orientation in quaternion.'
 
     input_port("fog_samples","/base/samples/IMUSensors").
       needs_reliable_connection.
       doc 'optic gyro angular velocity 1D (Z axis).'
 
-    input_port("xsens_samples", "/base/samples/IMUSensors").
+    input_port("imu_samples", "/base/samples/IMUSensors").
       needs_reliable_connection.
-      doc 'XSens data values (acc, gyros and magn).'
+      doc 'IMU data values (acc, gyros and magn).'
 
     #******************************
     #** Aggregator parameters ***** 
     #******************************
     stream_aligner() do
-	align_port("xsens_orientation", 0.01)
-	align_port("xsens_samples", 0.01)
+	align_port("imu_orientation", 0.01)
+	align_port("imu_samples", 0.01)
 	align_port("fog_samples", 0.01)
 	max_latency(0.1)
     end

@@ -39,9 +39,9 @@ IKFEstimator::IKFEstimator(std::string const& name)
     : IKFEstimatorBase(name)
 {
   
-  xsens_gyros = new Eigen::Matrix <double,NUMAXIS,1>;
-  xsens_acc = new Eigen::Matrix <double,NUMAXIS,1>;
-  xsens_mag = new Eigen::Matrix <double,NUMAXIS,1>;
+  imu_gyros = new Eigen::Matrix <double,NUMAXIS,1>;
+  imu_acc = new Eigen::Matrix <double,NUMAXIS,1>;
+  imu_mag = new Eigen::Matrix <double,NUMAXIS,1>;
   fog_gyros = new Eigen::Matrix <double,NUMAXIS,1>;
   head_q = new Eigen::Quaternion <double>;
   rbs_b_g = new base::samples::RigidBodyState;
@@ -51,7 +51,7 @@ IKFEstimator::IKFEstimator(std::string const& name)
   
   backup = new base::samples::IMUSensors;
   
-  flag_xsens_time  = false;
+  flag_imu_time  = false;
   flag_fog_time  = false;
   init_attitude = false;
 }
@@ -74,14 +74,14 @@ IKFEstimator::~IKFEstimator()
   delete fogikf;
   fogikf = NULL;
   
-  delete xsens_gyros;
-  xsens_gyros = NULL;
+  delete imu_gyros;
+  imu_gyros = NULL;
   
-  delete xsens_acc;
-  xsens_acc = NULL;
+  delete imu_acc;
+  imu_acc = NULL;
   
-  delete xsens_mag;
-  xsens_mag = NULL;
+  delete imu_mag;
+  imu_mag = NULL;
   
   delete fog_gyros;
   fog_gyros = NULL;
@@ -159,16 +159,16 @@ void IKFEstimator::fog_samplesCallback(const base::Time &ts, const ::base::sampl
  * @author Javier Hidalgo Carrio.
  *
  * @param[in] &ts timestamp
- * @param[in] &xsens_samples_sample Xsens sensor quaternion.
+ * @param[in] &imu_samples_sample Xsens sensor quaternion.
  *
  * @return void
  *
  */
-void IKFEstimator::xsens_orientationCallback(const base::Time &ts, const ::base::samples::RigidBodyState &xsens_orientation_sample)
+void IKFEstimator::imu_orientationCallback(const base::Time &ts, const ::base::samples::RigidBodyState &imu_orientation_sample)
 {
   
-  Eigen::Quaternion <double> attitude (xsens_orientation_sample.orientation.w(), xsens_orientation_sample.orientation.x(),
-    xsens_orientation_sample.orientation.y(), xsens_orientation_sample.orientation.z());
+  Eigen::Quaternion <double> attitude (imu_orientation_sample.orientation.w(), imu_orientation_sample.orientation.x(),
+    imu_orientation_sample.orientation.y(), imu_orientation_sample.orientation.z());
    Eigen::Matrix <double, NUMAXIS, 1> euler;
    
    if (init_attitude == false)
@@ -202,7 +202,7 @@ void IKFEstimator::xsens_orientationCallback(const base::Time &ts, const ::base:
 }
 
 /**
- * @brief Xsens callback function
+ * @brief IMU callback function
  * 
  * This function performs the callback of the StreamAlligner for the Xsens
  * angular velocity, accelerometers and magnetometers.
@@ -214,12 +214,12 @@ void IKFEstimator::xsens_orientationCallback(const base::Time &ts, const ::base:
  * @author Javier Hidalgo Carrio.
  *
  * @param[in] &ts timestamp
- * @param[in] &xsens_samples_sample Xsens sensor values.
+ * @param[in] &imu_samples_sample Xsens sensor values.
  *
  * @return void
  *
  */
-void IKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::samples::IMUSensors &xsens_samples_sample)
+void IKFEstimator::imu_samplesCallback(const base::Time &ts, const ::base::samples::IMUSensors &imu_samples_sample)
 {
   Eigen::Quaternion <double> qb_g;
   Eigen::Quaternion <double> auxq;
@@ -229,42 +229,46 @@ void IKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
   if (init_attitude == true)
   {
   
-    if (flag_xsens_time == false)
+    if (flag_imu_time == false)
     {
-      xsens_time = (double)xsens_samples_sample.time.toMilliseconds();
-      (*xsens_gyros) = xsens_samples_sample.gyro;
-      myikf->setOmega (xsens_gyros);
-      flag_xsens_time = true;
+      imu_time = (double)imu_samples_sample.time.toMilliseconds();
+      (*imu_gyros) = imu_samples_sample.gyro;
+      myikf->setOmega (imu_gyros);
+      flag_imu_time = true;
     }
     else
     {
-      xsens_dt = ((double)xsens_samples_sample.time.toMilliseconds() - xsens_time)/1000.00;
-      xsens_time = (double)xsens_samples_sample.time.toMilliseconds();
+      imu_dt = ((double)imu_samples_sample.time.toMilliseconds() - imu_time)/1000.00;
+      imu_time = (double)imu_samples_sample.time.toMilliseconds();
 
       /** Copy the sensor information */
-      (*xsens_gyros) = xsens_samples_sample.gyro;          
-      (*xsens_acc) = xsens_samples_sample.acc;
-      (*xsens_mag) = xsens_samples_sample.mag;
+      (*imu_gyros) = imu_samples_sample.gyro;          
+      (*imu_acc) = imu_samples_sample.acc;
+      (*imu_mag) = imu_samples_sample.mag;
 
       /** Substract the Earth Rotation from the gyros output */
       qb_g = myikf->getAttitude(); /** Rotation with respect to the geographic frame (North-Up-West) */
-      BaseEstimator::SubstractEarthRotation (xsens_gyros, &qb_g, _latitude.value());
+      BaseEstimator::SubstractEarthRotation (imu_gyros, &qb_g, _latitude.value());
       
       /** Orientation (Pitch and Roll from IKF, Yaw from FOG) */
-      (*xsens_gyros)[2] = 0.00;
-      
+      if (_fog_samples.connected())
+	  (*imu_gyros)[2] = 0.00;
+
       /** Perform the Indirect Kalman Filter */
-      myikf->predict (xsens_gyros, xsens_dt);
-      myikf->update (xsens_acc, xsens_mag, false);
+      myikf->predict (imu_gyros, imu_dt);
+      myikf->update (imu_acc, imu_mag, false);
     }
     
     /** Get Attitude en Euler **/
     euler = myikf->getEuler();
     
     /** Out in the Outports  */
-    rbs_b_g->time = xsens_samples_sample.time; //base::Time::now(); /** Set the timestamp */
+    rbs_b_g->time = imu_samples_sample.time; //base::Time::now(); /** Set the timestamp */
     
-    euler[2] = ((Eigen::Matrix <double, NUMAXIS, 1>) fogikf->getEuler())[2];
+    if (_fog_samples.connected())
+    {
+	euler[2] = ((Eigen::Matrix <double, NUMAXIS, 1>) fogikf->getEuler())[2];
+    }
     
 //     std::cout << "IKFEstimator\n";
 //     std::cout << "(Roll, Pitch, Yaw)\n"<< euler[0]*R2D<<","<< euler[1]*R2D<<","<< euler[2]*R2D<<"\n";
@@ -284,7 +288,7 @@ void IKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
     (*head_q) = auxq;
     
     /** Write the Angular velocity (as the different between two orientations in radians)*/
-    rbs_b_g->angular_velocity = (euler - (*oldeuler))/xsens_dt;
+    rbs_b_g->angular_velocity = (euler - (*oldeuler))/imu_dt;
     
     /** Store the euler angle for the next iteration **/
     (*oldeuler)= euler;
@@ -293,11 +297,11 @@ void IKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
     _attitude_b_g.write((*rbs_b_g));
     
     /** Write inputs into output for backup **/
-    backup->time = xsens_samples_sample.time;
-    backup->gyro[0] = (*xsens_gyros)[0];
-    backup->gyro[1] = (*xsens_gyros)[1];
+    backup->time = imu_samples_sample.time;
+    backup->gyro[0] = (*imu_gyros)[0];
+    backup->gyro[1] = (*imu_gyros)[1];
     backup->gyro[2] = (*fog_gyros)[2];
-    backup->acc = (*xsens_acc);
+    backup->acc = (*imu_acc);
     
     _inputs_backup.write ((*backup));
     
@@ -314,6 +318,7 @@ void IKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
 bool IKFEstimator::configureHook()
 {
   
+    Eigen::Quaternion <double> attitude; /**< Initial attitude in case no port is connected **/
     Eigen::Matrix <double,NUMAXIS,NUMAXIS> Ra; /**< Measurement noise convariance matrix for acc */
     Eigen::Matrix <double,NUMAXIS,NUMAXIS> Rg; /**< Measurement noise convariance matrix for gyros */
     Eigen::Matrix <double,NUMAXIS,NUMAXIS> Rm; /**< Measurement noise convariance matrix for mag */
@@ -323,8 +328,8 @@ bool IKFEstimator::configureHook()
     double latitude = (double)_latitude.value();
     double altitude = (double)_altitude.value();
     double g;
-
-
+    
+    
     /** Fill the matrices **/
     Ra = Matrix<double,NUMAXIS,NUMAXIS>::Zero();
     Ra(0,0) = 0.050;
@@ -368,6 +373,56 @@ bool IKFEstimator::configureHook()
 
     /** Initial values for the IKF **/
     myikf->Init(&P_0, &Ra, &Rg, &Rm, &Qbg, &Qba, g, (double)_dip_angle.value());
+    
+    
+    /** Info and Warnings about the Task **/
+    
+    if (_imu_orientation.connected())
+    {
+	RTT::log(RTT::Info) << "IMU is connected" << RTT::endlog();
+    }
+    else
+    {
+	RTT::log(RTT::Warning) << "IMU NO connected." << RTT::endlog();
+	RTT::log(RTT::Warning) << "Initial orientation is not provided."<< RTT::endlog();
+	RTT::log(RTT::Warning) << "Zero angles attitude pointing North is then assumed." << RTT::endlog();
+	
+	/** Set the initial attitude when no initial IMU orientation is provided **/
+	attitude = Eigen::Quaternion <double> (Eigen::AngleAxisd(0.00, Eigen::Vector3d::UnitZ())*
+			Eigen::AngleAxisd(0.00, Eigen::Vector3d::UnitY()) *
+			Eigen::AngleAxisd(0.00, Eigen::Vector3d::UnitX()));
+	
+	/** Set the initial attitude quaternion of the IKF **/
+	myikf->setAttitude (&attitude);
+	fogikf->setAttitude (&attitude);
+	init_attitude = true;
+     
+	/** Fog quaternion initial value is also the IKF initial quaternion **/
+	(*head_q) = myikf->getAttitude ();
+	
+	RTT::log(RTT::Warning) << "Init: Pitch 0.00 Init: Roll 0.00 Init: Yaw 0.00" << RTT::endlog();
+    }
+    
+    if (_fog_samples.connected())
+    {
+	RTT::log(RTT::Info) << "FOG is connected" << RTT::endlog();
+    }
+    else
+    {
+	RTT::log(RTT::Warning) << "FOG NO connected" << RTT::endlog();
+	RTT::log(RTT::Info) << "Heading will be calculated from the IMU samples." << RTT::endlog();
+    }
+    if (_imu_samples.connected())
+    {
+	RTT::log(RTT::Info) << "IMU samples is connected" << RTT::endlog();
+    }
+    else
+    {
+	RTT::log(RTT::Warning) << "IMU samples NO connected." << RTT::endlog();
+	RTT::log(RTT::Warning) << "Potential malfunction on the task!" << RTT::endlog();
+    }
+    
+    
 
     return IKFEstimatorBase::configureHook();;  
 }

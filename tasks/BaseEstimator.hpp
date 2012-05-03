@@ -78,7 +78,7 @@ namespace orientation_estimator {
 
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 	double fog_time, fog_dt; /**< Delta time coming for FOG values */
-	bool flag_fog_time, init_attitude; /** Control flags */
+	bool flag_fog_time, init_attitude; /**< Control flags */
 	Eigen::Quaternion <double> *head_q; /**< Quaternion for the yaw (heading) */
 	Eigen::Matrix <double, NUMAXIS, 1> *euler;
 	base::samples::RigidBodyState *rbs_b_g; /**< Output RigidBody State containin the orientation and angular velocity of the body */
@@ -86,7 +86,7 @@ namespace orientation_estimator {
 	
 	
         virtual void fog_samplesCallback(const base::Time &ts, const ::base::samples::IMUSensors &fog_samples_sample);
-        virtual void xsens_orientationCallback(const base::Time &ts, const ::base::samples::RigidBodyState &xsens_orientation_sample);
+        virtual void imu_orientationCallback(const base::Time &ts, const ::base::samples::RigidBodyState &imu_orientation_sample);
 
     public:
 	

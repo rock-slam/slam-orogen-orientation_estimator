@@ -44,7 +44,7 @@ UKFEstimator::UKFEstimator(std::string const& name)
     oldeuler = new Eigen::Matrix <double, NUMAXIS, 1>;
     myukf = new ukf;
 
-    flag_xsens_time  = false;
+    flag_imu_time  = false;
     flag_fog_time  = false;
     init_attitude = false;  
 }
@@ -134,16 +134,16 @@ void UKFEstimator::fog_samplesCallback(const base::Time &ts, const ::base::sampl
 	    myukf->attitudeUpdate ();
 
 	}
-	    }
+    }
 
   return;
 }
 
 /**
- * @brief Xsens orientation callback function
+ * @brief IMU orientation callback function
  * 
  * This function performs the callback of the StreamAlligner for the 
- * orientation coming from the Xsens quaternion
+ * orientation coming from the IMU quaternion
  * 
  * This function is used to initially set the quaternion.
  * Therefore, it initializes the original value for the orientation (init quaternion).
@@ -151,16 +151,16 @@ void UKFEstimator::fog_samplesCallback(const base::Time &ts, const ::base::sampl
  * @author Javier Hidalgo Carrio.
  *
  * @param[in] &ts timestamp
- * @param[in] &xsens_samples_sample Xsens sensor quaternion.
+ * @param[in] &imu_samples_sample IMU sensor quaternion.
  *
  * @return void
  *
  */
-void UKFEstimator::xsens_orientationCallback(const base::Time &ts, const ::base::samples::RigidBodyState &xsens_orientation_sample)
+void UKFEstimator::imu_orientationCallback(const base::Time &ts, const ::base::samples::RigidBodyState &imu_orientation_sample)
 {
   
-    Eigen::Quaternion <double> attitude (xsens_orientation_sample.orientation.w(), xsens_orientation_sample.orientation.x(),
-    xsens_orientation_sample.orientation.y(), xsens_orientation_sample.orientation.z());
+    Eigen::Quaternion <double> attitude (imu_orientation_sample.orientation.w(), imu_orientation_sample.orientation.x(),
+    imu_orientation_sample.orientation.y(), imu_orientation_sample.orientation.z());
     Eigen::Matrix <double, NUMAXIS, 1> euler;
 
     if (init_attitude == false)
@@ -169,7 +169,7 @@ void UKFEstimator::xsens_orientationCallback(const base::Time &ts, const ::base:
 	/** Eliminate the Magnetic declination from the initial attitude quaternion  (because the initial quaternion from Xsens come from Magn) **/
 	BaseEstimator::CorrectMagneticDeclination (&attitude, _magnetic_declination.value(), _magnetic_declination_mode.value());
 	
-	/** Set the initial attitude quaternion of the IKF **/
+	/** Set the initial attitude quaternion of the UKF **/
 	myukf->setAttitude (&attitude);
 	init_attitude = true;
 	
@@ -188,7 +188,7 @@ void UKFEstimator::xsens_orientationCallback(const base::Time &ts, const ::base:
 }
 
 /**
- * @brief Xsens callback function
+ * @brief IMU callback function
  * 
  * This function performs the callback of the StreamAlligner for the Xsens
  * angular velocity, accelerometers and magnetometers.
@@ -200,51 +200,54 @@ void UKFEstimator::xsens_orientationCallback(const base::Time &ts, const ::base:
  * @author Javier Hidalgo Carrio.
  *
  * @param[in] &ts timestamp
- * @param[in] &xsens_samples_sample Xsens sensor values.
+ * @param[in] &imu_samples_sample Xsens sensor values.
  *
  * @return void
  *
  */
-void UKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::samples::IMUSensors &xsens_samples_sample)
+void UKFEstimator::imu_samplesCallback(const base::Time &ts, const ::base::samples::IMUSensors &imu_samples_sample)
 {
 
     Eigen::Quaternion <double> qb_g;
     Eigen::Matrix <double, NUMAXIS, 1> euler;
     
     /** Copy the sensor information */
-    (*gyros)[0] = xsens_samples_sample.gyro[0];
-    (*gyros)[1] = xsens_samples_sample.gyro[1];
-    (*gyros)[2] = 0.00;
+    (*gyros)[0] = imu_samples_sample.gyro[0];
+    (*gyros)[1] = imu_samples_sample.gyro[1];
+    (*gyros)[2] = imu_samples_sample.gyro[2];
     
-    (*acc) = xsens_samples_sample.acc;
+    (*acc) = imu_samples_sample.acc;
     
         
     if (init_attitude == true)
     {
-	if (flag_xsens_time == false)
+	if (flag_imu_time == false)
 	{
-	    xsens_time = (double)xsens_samples_sample.time.toMilliseconds();
-	    flag_xsens_time = true;
+	    imu_time = (double)imu_samples_sample.time.toMilliseconds();
+	    flag_imu_time = true;
 	}
 	else
 	{
-	    xsens_dt = ((double)xsens_samples_sample.time.toMilliseconds() - xsens_time)/1000.00;
-	    xsens_time = (double)xsens_samples_sample.time.toMilliseconds();
+	    imu_dt = ((double)imu_samples_sample.time.toMilliseconds() - imu_time)/1000.00;
+	    imu_time = (double)imu_samples_sample.time.toMilliseconds();
 
 
 	    /** Substract the Earth Rotation from the gyros output */
 	    qb_g = myukf->getAttitude(); /** Rotation with respect to the geographic frame (North-Up-West) */
 	    BaseEstimator::SubstractEarthRotation (gyros, &qb_g, _latitude.value());
-	    (*gyros)[2] = 0.00;
+	    
+	    /** Orientation (Pitch and Roll from IMU, Yaw from FOG) */
+	    if (_fog_samples.connected())
+		(*gyros)[2] = 0.00;
 	    
 	    /** Perform the Unscented Kalman Filter */
- 	    myukf->predict (gyros, xsens_dt);
+ 	    myukf->predict (gyros, imu_dt);
 	    myukf->update (acc, acc);
 	}
 
 
 	/** Out in the Outports  */
-	rbs_b_g->time = xsens_samples_sample.time; //base::Time::now(); /** Set the timestamp */
+	rbs_b_g->time = imu_samples_sample.time; //base::Time::now(); /** Set the timestamp */
 	
 	/** Get attitude from the filter **/
 	qb_g = myukf->getAttitude();
@@ -259,7 +262,7 @@ void UKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
 	euler = myukf->getEuler();
 
 	/** Write the Angular velocity (as the different between two orientations in radians)*/
-	rbs_b_g->angular_velocity = (euler - (*oldeuler))/xsens_dt;
+	rbs_b_g->angular_velocity = (euler - (*oldeuler))/imu_dt;
 
 	/** Store the euler angle for the next iteration **/
 	(*oldeuler)= euler;
@@ -279,6 +282,7 @@ void UKFEstimator::xsens_samplesCallback(const base::Time &ts, const ::base::sam
 
 bool UKFEstimator::configureHook()
 {
+    Eigen::Quaternion <double> attitude; /**< Initial attitude in case no port is connected **/
     Eigen::Matrix <double,UKFSTATEVECTORSIZE, UKFSTATEVECTORSIZE> P_0; /**< Initial State covariance matrix */
     Eigen::Quaternion <double> at_q;  /**< Attitude quaternion. Note the order of the arguments: the real w coefficient first, while internally the coefficients are stored in the following order: [x, y, z, w] */
     Eigen::Matrix <double,UKFSTATEVECTORSIZE, UKFSTATEVECTORSIZE> Q; /**< Process noise covariance matrix */
@@ -292,8 +296,8 @@ bool UKFEstimator::configureHook()
 
 
     /** Init times **/
-    fog_time = 0.00;	xsens_time = 0.00;
-    fog_dt = 0.00;	xsens_dt = 0.00;
+    fog_time = 0.00;	imu_time = 0.00;
+    fog_dt = 0.00;	imu_dt = 0.00;
     
     
     /** Init covariances **/
@@ -345,6 +349,48 @@ bool UKFEstimator::configureHook()
 
     /** Initial values for the UKF **/
     myukf->Init(&x_0, &P_0, &Q, &R, &at_q, (double)1.00, (double)4.00, 1, g);
+    
+    /** Info and Warnings about the Task **/
+    if (_imu_orientation.connected())
+    {
+	RTT::log(RTT::Info) << "IMU is connected" << RTT::endlog();
+    }
+    else
+    {
+	RTT::log(RTT::Warning) << "IMU NO connected." << RTT::endlog();
+	RTT::log(RTT::Warning) << "Initial orientation is not provided."<< RTT::endlog();
+	RTT::log(RTT::Warning) << "Zero angles attitude pointing North is then assumed." << RTT::endlog();
+	
+	/** Set the initial attitude when no initial IMU orientation is provided **/
+	attitude = Eigen::Quaternion <double> (Eigen::AngleAxisd(0.00, Eigen::Vector3d::UnitZ())*
+			Eigen::AngleAxisd(0.00, Eigen::Vector3d::UnitY()) *
+			Eigen::AngleAxisd(0.00, Eigen::Vector3d::UnitX()));
+	
+	/** Set the initial attitude quaternion of the UKF **/
+	myukf->setAttitude (&attitude);
+	init_attitude = true;
+	
+	RTT::log(RTT::Warning) << "Init: Pitch 0.00 Init: Roll 0.00 Init: Yaw 0.00" << RTT::endlog();
+    }
+    
+    if (_fog_samples.connected())
+    {
+	RTT::log(RTT::Info) << "FOG is connected" << RTT::endlog();
+    }
+    else
+    {
+	RTT::log(RTT::Warning) << "FOG NO connected" << RTT::endlog();
+	RTT::log(RTT::Info) << "Heading will be calculated from the IMU samples." << RTT::endlog();
+    }
+    if (_imu_samples.connected())
+    {
+	RTT::log(RTT::Info) << "IMU samples is connected" << RTT::endlog();
+    }
+    else
+    {
+	RTT::log(RTT::Warning) << "IMU samples NO connected." << RTT::endlog();
+	RTT::log(RTT::Warning) << "Potential malfunction on the task!" << RTT::endlog();
+    }
 
     return UKFEstimatorBase::configureHook();
 }

@@ -46,9 +46,9 @@ namespace orientation_estimator {
 	friend class UKFEstimatorBase;
     protected:
 	
-	double xsens_time, xsens_dt; /**< Delta time coming for Xsens values */
+	double imu_time, imu_dt; /**< Delta time coming for Xsens values */
 	double fog_time, fog_dt; /**< Delta time coming for FOG values */
-	bool flag_xsens_time, flag_fog_time, init_attitude; /** Control flags */
+	bool flag_imu_time, flag_fog_time, init_attitude; /** Control flags */
 	filter::ukf *myukf; /**< The Unscented kalman filter */
 	Eigen::Matrix <double,NUMAXIS,1> *gyros; /**< Gyroscopes */
 	Eigen::Matrix <double,NUMAXIS,1> *acc; /**< Acceleremeters */
@@ -57,8 +57,8 @@ namespace orientation_estimator {
 	
 
         virtual void fog_samplesCallback(const base::Time &ts, const ::base::samples::IMUSensors &fog_samples_sample);
-        virtual void xsens_orientationCallback(const base::Time &ts, const ::base::samples::RigidBodyState &xsens_orientation_sample);
-        virtual void xsens_samplesCallback(const base::Time &ts, const ::base::samples::IMUSensors &xsens_samples_sample);
+        virtual void imu_orientationCallback(const base::Time &ts, const ::base::samples::RigidBodyState &imu_orientation_sample);
+        virtual void imu_samplesCallback(const base::Time &ts, const ::base::samples::IMUSensors &imu_samples_sample);
 
     public:
         /** TaskContext constructor for UKFEstimator
