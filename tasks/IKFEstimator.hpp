@@ -60,7 +60,6 @@ namespace orientation_estimator {
 	Eigen::Matrix <double,NUMAXIS,1> *imu_acc; /**< Acceleremeters from Xsens */
 	Eigen::Matrix <double,NUMAXIS,1> *imu_mag; /**< Magnetometers from Xsens */
 	Eigen::Matrix <double,NUMAXIS,1> *fog_gyros; /**< Angular velocity for the FOG */
-	Eigen::Quaternion <double> *head_q; /**< Quaternion for the yaw (heading) */
 	filter::ikf *myikf; /**< The adaptive Indirect kalman filter */
 	filter::ikf *fogikf; /**< The adaptive Indirect kalman filter */
 	base::samples::RigidBodyState *rbs_b_g; /**< Output RigidBody State containin the orientation and angular velocity of the body */
