@@ -256,7 +256,7 @@ void IKFEstimator::imu_samplesCallback(const base::Time &ts, const ::base::sampl
 
       /** Perform the Indirect Kalman Filter */
       myikf->predict (imu_gyros, imu_dt);
-      myikf->update (imu_acc, imu_mag, false);
+      myikf->update (imu_acc, imu_mag, _use_magnetometers.value());
     }
     
     /** Get Attitude en Euler **/

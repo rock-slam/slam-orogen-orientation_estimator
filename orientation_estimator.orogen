@@ -169,6 +169,9 @@ task_context 'IKFEstimator' do
 	doc 'Time in s between position readings (aprox values for Xsens and FOG)'
 	doc 'This value is not used for the filter in the integration. This is only used for the noise matrices'
 
+    property('use_magnetometers', 'bool', false).
+	doc 'Include (true) or exclude (false) the magnetometers values in the correction step of the filter'
+
     port_driven
     
 end

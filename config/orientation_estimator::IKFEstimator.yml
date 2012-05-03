@@ -23,6 +23,8 @@ aggregator_max_latency: 0.1
 altitude: 12.0
 # Time in s between position readings (aprox values for Xsens and FOG)
 delta_time: 0.01
+#Include (true) or exclude (false) the magnetometers values in the correction step of the filter
+use_magnetometers: false
 # Dip angle of Bremen in radians (equivalent to 68.05 degrees ).
 dip_angle: 1.187696556
 # minimum time, in s, between two sequential samples arrive on fog_samples
