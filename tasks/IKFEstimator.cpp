@@ -113,6 +113,8 @@ void IKFEstimator::fog_samplesCallback(const base::Time &ts, const ::base::sampl
   Eigen::Matrix <double, NUMAXIS, 1> euler;
   (*fog_gyros) = fog_samples_sample.gyro;
     
+   std::cout<<"FOG callback\n";
+
   if (init_attitude == true)
   {
     if (flag_fog_time == false)
@@ -121,12 +123,12 @@ void IKFEstimator::fog_samplesCallback(const base::Time &ts, const ::base::sampl
       
       /** Becasue the rest of values are nan is a problem to definen the omega of
        * the filter therefore they need to be set to zero the axis withour values **/
-      if ((*fog_gyros)[0] != (*fog_gyros)[0]) //If NaN?
+//       if ((*fog_gyros)[0] != (*fog_gyros)[0]) //If NaN?
 	(*fog_gyros)[0] = 0.00;
-      if ((*fog_gyros)[1] != (*fog_gyros)[1]) //If NaN?
+//       if ((*fog_gyros)[1] != (*fog_gyros)[1]) //If NaN?
 	(*fog_gyros)[1] = 0.00;
-      if ((*fog_gyros)[2] != (*fog_gyros)[2]) //If NaN?
-	(*fog_gyros)[2] = 0.00;
+//       if ((*fog_gyros)[2] != (*fog_gyros)[2]) //If NaN?
+// 	(*fog_gyros)[2] = 0.00;
       fogikf->setOmega (fog_gyros);
       flag_fog_time = true;
     }
@@ -145,6 +147,7 @@ void IKFEstimator::fog_samplesCallback(const base::Time &ts, const ::base::sampl
       (*fog_gyros)[0] = 0.00;
       (*fog_gyros)[1] = 0.00;
       (*fog_gyros)[2] = (*fog_gyros)[2] - _gbiasof.get()[2];
+      
       
       fogikf->getEuler();
       
@@ -235,14 +238,18 @@ void IKFEstimator::imu_samplesCallback(const base::Time &ts, const ::base::sampl
   Eigen::Matrix <double, NUMAXIS, 1> euler;
   Eigen::Matrix <double, NUMAXIS, 1> heading;
   
-    
+  std::cout<<"IMU Samples calback\n";
+
   if (init_attitude == true)
   {
+    /** Copy the sensor information */
+    (*imu_gyros) = imu_samples_sample.gyro;          
+    (*imu_acc) = imu_samples_sample.acc;
+    (*imu_mag) = imu_samples_sample.mag;
   
     if (flag_imu_time == false)
     {
       imu_time = (double)imu_samples_sample.time.toMilliseconds();
-      (*imu_gyros) = imu_samples_sample.gyro;
       myikf->setOmega (imu_gyros);
       flag_imu_time = true;
     }
@@ -250,11 +257,6 @@ void IKFEstimator::imu_samplesCallback(const base::Time &ts, const ::base::sampl
     {
       imu_dt = ((double)imu_samples_sample.time.toMilliseconds() - imu_time)/1000.00;
       imu_time = (double)imu_samples_sample.time.toMilliseconds();
-
-      /** Copy the sensor information */
-      (*imu_gyros) = imu_samples_sample.gyro;          
-      (*imu_acc) = imu_samples_sample.acc;
-      (*imu_mag) = imu_samples_sample.mag;
 
       /** Substract the Earth Rotation from the gyros output */
       qb_g = myikf->getAttitude(); /** Rotation with respect to the geographic frame (North-Up-West) */
@@ -266,7 +268,17 @@ void IKFEstimator::imu_samplesCallback(const base::Time &ts, const ::base::sampl
    
       /** Perform the Indirect Kalman Filter */
       myikf->predict (imu_gyros, imu_dt);
+      std::cout<<"Gyros"<<(*imu_gyros) <<"\n";
+      std::cout<<"Acc"<<(*imu_acc) <<"\n";
+      std::cout<<"Magn"<<(*imu_mag) <<"\n";
+      std::cout<<"USE MAGN? "<<_use_magnetometers.value()<<"\n";
+      if (_use_magnetometers.value() == true)
+	  std::cout<<"YEAH I am true\n";
+      std::cout<<"after predict\n";
+       myikf->getEuler();
       myikf->update (imu_acc, imu_mag, _use_magnetometers.value());
+      std::cout<<"after update\n";
+      myikf->getEuler();
     }
     
     /** Get Attitude en Euler **/
@@ -280,9 +292,9 @@ void IKFEstimator::imu_samplesCallback(const base::Time &ts, const ::base::sampl
 	euler[2] = ((Eigen::Matrix <double, NUMAXIS, 1>) fogikf->getEuler())[2];
     }
     
-//     std::cout << "IKFEstimator\n";
-//     std::cout << "(Roll, Pitch, Yaw)\n"<< euler[0]*R2D<<","<< euler[1]*R2D<<","<< euler[2]*R2D<<"\n";
-//     std::cout << "**********************\n";
+    std::cout << "IKFEstimator\n";
+    std::cout << "(Roll, Pitch, Yaw)\n"<< euler[0]*R2D<<","<< euler[1]*R2D<<","<< euler[2]*R2D<<"\n";
+    std::cout << "**********************\n";
      
     auxq = Eigen::Quaternion <double> (Eigen::AngleAxisd(euler[2], Eigen::Vector3d::UnitZ())*
  			    Eigen::AngleAxisd(euler[1], Eigen::Vector3d::UnitY()) *
@@ -296,7 +308,12 @@ void IKFEstimator::imu_samplesCallback(const base::Time &ts, const ::base::sampl
     
     /** Also update the quaternion used by the fog callback function **/
     if (_fog_samples.connected())
+    {
 	fogikf->setAttitude(&auxq);
+	
+	/** Also the heading changed due to fog heading, update in the myikf extructure **/
+	myikf->setAttitude(&auxq);
+    }
     
     /** Write the Angular velocity (as the different between two orientations in radians)*/
     rbs_b_g->angular_velocity = (euler - (*oldeuler))/imu_dt;
