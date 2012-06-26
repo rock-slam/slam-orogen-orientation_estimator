@@ -40,7 +40,7 @@ UKFEstimator::UKFEstimator(std::string const& name)
 {
     gyros = new Eigen::Matrix <double,NUMAXIS,1>;
     acc = new Eigen::Matrix <double,NUMAXIS,1>;
-    rbs_b_g = new base::samples::RigidBodyState;
+    rbs_b_g = new base::samples::RigidBodyState::invalid();
     oldeuler = new Eigen::Matrix <double, NUMAXIS, 1>;
     myukf = new ukf;
 

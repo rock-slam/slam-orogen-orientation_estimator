@@ -43,7 +43,7 @@ IKFEstimator::IKFEstimator(std::string const& name)
   imu_acc = new Eigen::Matrix <double,NUMAXIS,1>;
   imu_mag = new Eigen::Matrix <double,NUMAXIS,1>;
   fog_gyros = new Eigen::Matrix <double,NUMAXIS,1>;
-  rbs_b_g = new base::samples::RigidBodyState;
+  rbs_b_g = new base::samples::RigidBodyState::invalid();
   oldeuler = new Eigen::Matrix <double, NUMAXIS, 1>;
   myikf = new ikf;
   fogikf = new ikf;
