@@ -38,12 +38,13 @@ using namespace filter;
 IKFEstimator::IKFEstimator(std::string const& name)
     : IKFEstimatorBase(name)
 {
-  
+   
   imu_gyros = new Eigen::Matrix <double,NUMAXIS,1>;
   imu_acc = new Eigen::Matrix <double,NUMAXIS,1>;
   imu_mag = new Eigen::Matrix <double,NUMAXIS,1>;
   fog_gyros = new Eigen::Matrix <double,NUMAXIS,1>;
-  rbs_b_g = new base::samples::RigidBodyState::invalid();
+  rbs_b_g = new base::samples::RigidBodyState();
+  rbs_b_g->invalidate();
   oldeuler = new Eigen::Matrix <double, NUMAXIS, 1>;
   myikf = new ikf;
   fogikf = new ikf;

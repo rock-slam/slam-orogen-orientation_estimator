@@ -35,7 +35,8 @@ BaseEstimator::BaseEstimator(std::string const& name)
 
   euler = new Eigen::Matrix <double,NUMAXIS,1>;
   head_q = new Eigen::Quaternion <double>;
-  rbs_b_g = new base::samples::RigidBodyState::invalid();
+  rbs_b_g = new base::samples::RigidBodyState();
+  rbs_b_g->invalidate();
   oldeuler = new Eigen::Matrix <double, NUMAXIS, 1>;
   
   flag_fog_time  = false;
