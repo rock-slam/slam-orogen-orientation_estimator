@@ -467,8 +467,8 @@ bool IKFEstimator::configureHook()
     rbs_b_g->targetFrame = "Geographic_Frame (North-West-Up)"; /** The Geographic Frame in Target */
 
     /** Initial values for the IKF **/
-    myikf->Init(&P_0, &Ra, &Rg, &Rm, &Qbg, &Qba, -g, (double)_dip_angle.value());
-    fogikf->Init(&P_0, &Ra, &Rg, &Rm, &Qbg, &Qba, -g, (double)_dip_angle.value());
+    myikf->Init(&P_0, &Ra, &Rg, &Rm, &Qbg, &Qba, g, (double)_dip_angle.value());
+    fogikf->Init(&P_0, &Ra, &Rg, &Rm, &Qbg, &Qba, g, (double)_dip_angle.value());
     
     /** init set the vector state to zero but it can be changed here **/
     x_0 = Matrix<double,IKFSTATEVECTORSIZE,1>::Zero();
