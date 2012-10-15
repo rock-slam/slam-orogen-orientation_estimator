@@ -292,6 +292,8 @@ void BaseEstimator::SubstractEarthRotation(Eigen::Matrix <double, NUMAXIS, 1> *u
 
     /** Compute the v vector expressed in the body frame **/
     v = (*qb_g) * v;
+    
+//     std::cout<<"Earth Rotation:"<<v<<"\n";
 
     /** Subtract the earth rotation to the vector of inputs (u = u-v**/
     (*u)  = (*u) - v;

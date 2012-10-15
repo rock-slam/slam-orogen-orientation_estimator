@@ -25,10 +25,11 @@ namespace orientation_estimator {
     #define NUMAXIS 3 /**< Number of axis sensed by the sensors **/
     #endif
     
-    /** FOG DSP 3000 defines **/
-    #define FOGBIAS  0.00 /** FOG Initial bias offset **/
-    #define FOGRW 1.32e-05 /** FOG Ramdom walk (white noise) **/
-    #define FOGRRW 1.90e-08 /** FOG Rate Ramdom walk (white noise in angular acc) **/
+    /** Sensors constant parameters **/
+    #ifndef NUMBER_INIT_ACC
+    #define NUMBER_INIT_ACC 256 /**< Number acc samples to compute initial pitch and roll considering not init_attitude provided by imu_orientationCallback**/
+    #endif
+    
     
     /** Xsens MTi defines **/
     /** The values are in the configuration file **/
@@ -53,6 +54,7 @@ namespace orientation_estimator {
     protected:
 
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+	int accidx; /** index for acc mean value for init attitude **/
 	double imu_time, imu_dt; /**< Delta time coming for Xsens values */
 	double fog_time, fog_dt; /**< Delta time coming for FOG values */
 	bool flag_imu_time, flag_fog_time, init_attitude; /** Control flags */
@@ -63,7 +65,8 @@ namespace orientation_estimator {
 	filter::ikf *myikf; /**< The adaptive Indirect kalman filter */
 	filter::ikf *fogikf; /**< The adaptive Indirect kalman filter */
 	base::samples::RigidBodyState *rbs_b_g; /**< Output RigidBody State containin the orientation and angular velocity of the body */
-	Eigen::Matrix <double, NUMAXIS, 1> *oldeuler; /**< Euler angles for the velocity stimation */
+	Eigen::Matrix <double, NUMAXIS, 1> *oldeuler; /**< Euler angles for the angular velocity estimation */
+	Eigen::Matrix <double,NUMAXIS, NUMBER_INIT_ACC> *init_acc; /**< Initial values of Acceleremeters for Picth and Roll calculation */
 	
 	base::samples::IMUSensors *backup;
 	

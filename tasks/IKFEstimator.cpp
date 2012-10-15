@@ -38,7 +38,8 @@ using namespace filter;
 IKFEstimator::IKFEstimator(std::string const& name)
     : IKFEstimatorBase(name)
 {
-   
+  
+  accidx = 0;
   imu_gyros = new Eigen::Matrix <double,NUMAXIS,1>;
   imu_acc = new Eigen::Matrix <double,NUMAXIS,1>;
   imu_mag = new Eigen::Matrix <double,NUMAXIS,1>;
@@ -46,6 +47,7 @@ IKFEstimator::IKFEstimator(std::string const& name)
   rbs_b_g = new base::samples::RigidBodyState();
   rbs_b_g->invalidate();
   oldeuler = new Eigen::Matrix <double, NUMAXIS, 1>;
+  init_acc = new Eigen::Matrix <double,NUMAXIS,NUMBER_INIT_ACC>;
   myikf = new ikf;
   fogikf = new ikf;
   
@@ -67,7 +69,7 @@ IKFEstimator::IKFEstimator(std::string const& name)
  */
 IKFEstimator::~IKFEstimator()
 {
-  /** Free filter object **/
+  /** Free filter objects **/
   delete myikf;
   myikf = NULL;
   
@@ -91,6 +93,9 @@ IKFEstimator::~IKFEstimator()
   
   delete rbs_b_g;
   rbs_b_g = NULL;
+  
+  delete init_acc;
+  init_acc = NULL;
 }
 
 /**
@@ -255,9 +260,13 @@ void IKFEstimator::imu_samplesCallback(const base::Time &ts, const ::base::sampl
       imu_dt = ((double)imu_samples_sample.time.toMilliseconds() - imu_time)/1000.00;
       imu_time = (double)imu_samples_sample.time.toMilliseconds();
 
+//       std::cout << "Gyros(rad/sec)\n"<< (*imu_gyros)[0]<<","<< (*imu_gyros)[1]<<","<< (*imu_gyros)[2]<<"\n";
+      
       /** Substract the Earth Rotation from the gyros output */
       qb_g = myikf->getAttitude(); /** Rotation with respect to the geographic frame (North-Up-West) */
       BaseEstimator::SubstractEarthRotation (imu_gyros, &qb_g, _latitude.value());
+      
+//       std::cout << "Gyros-Earth(rad/sec)\n"<< (*imu_gyros)[0]<<","<< (*imu_gyros)[1]<<","<< (*imu_gyros)[2]<<"\n";
       
       /** Orientation (Pitch and Roll from IKF, Yaw from FOG) */
       if (_fog_samples.connected())
@@ -278,11 +287,11 @@ void IKFEstimator::imu_samplesCallback(const base::Time &ts, const ::base::sampl
     {
 	euler[2] = ((Eigen::Matrix <double, NUMAXIS, 1>) fogikf->getEuler())[2];
     }
-/*    
-    std::cout << "IKFEstimator\n";
-    std::cout << "(Roll, Pitch, Yaw)\n"<< euler[0]*R2D<<","<< euler[1]*R2D<<","<< euler[2]*R2D<<"\n";
-    std::cout << "**********************\n";
-     */
+    
+//     std::cout << "IKFEstimator\n";
+//     std::cout << "(Roll, Pitch, Yaw)\n"<< euler[0]*R2D<<","<< euler[1]*R2D<<","<< euler[2]*R2D<<"\n";
+//     std::cout << "**********************\n";
+     
     auxq = Eigen::Quaternion <double> (Eigen::AngleAxisd(euler[2], Eigen::Vector3d::UnitZ())*
  			    Eigen::AngleAxisd(euler[1], Eigen::Vector3d::UnitY()) *
  			    Eigen::AngleAxisd(euler[0], Eigen::Vector3d::UnitX()));
@@ -323,6 +332,46 @@ void IKFEstimator::imu_samplesCallback(const base::Time &ts, const ::base::sampl
     
     
   }
+  else if (!_imu_orientation.connected())
+  {
+      /** Add one acc smaple to teh buffer **/
+      init_acc->col(accidx) = imu_samples_sample.acc;
+      accidx++;
+
+      if (accidx == NUMBER_INIT_ACC)
+      {
+	Eigen::Matrix <double,NUMAXIS,1> meanacc;
+	Eigen::Matrix <double,NUMAXIS,1> euler;
+	Eigen::Quaternion <double> attitude; /**< Initial attitude in case no port in imu_orientation is connected **/
+	
+	meanacc[0] = init_acc->row(0).mean();
+	meanacc[1] = init_acc->row(1).mean();
+	meanacc[2] = init_acc->row(2).mean();
+	
+	std::cout<<"Mean acc values: "<<meanacc[0]<<" "<<meanacc[1]<<" "<<meanacc[2]<<"\n";	
+	std::cout<<"Computed gravity: "<<meanacc.norm()<<"\n";
+	
+	euler[0] = (double) asin((double)meanacc[1]/ (double)meanacc.norm()); // Roll
+	euler[1] = (double)-atan(meanacc[0]/meanacc[2]); //Pitch
+	euler[2] = 0.00;
+	
+	/** Set the initial attitude when no initial IMU orientation is provided **/
+	attitude = Eigen::Quaternion <double> (Eigen::AngleAxisd(euler[2], Eigen::Vector3d::UnitZ())*
+	Eigen::AngleAxisd(euler[1], Eigen::Vector3d::UnitY()) *
+	Eigen::AngleAxisd(euler[0], Eigen::Vector3d::UnitX()));
+	
+	/** Set the initial attitude quaternion of the IKF **/
+	myikf->setAttitude (&attitude);
+	fogikf->setAttitude (&attitude);
+	init_attitude = true;
+     	
+	RTT::log(RTT::Info) << "******** Init Attitude IKFEstimator *******"<< RTT::endlog();
+	RTT::log(RTT::Info) << "Init Roll: "<<euler[0]*R2D<<"Init Pitch: "<<euler[1]*R2D<<"Init Yaw: "<<euler[2]<< RTT::endlog();
+      }
+      
+      
+  }
+  
   return;
 }
 
@@ -332,8 +381,7 @@ void IKFEstimator::imu_samplesCallback(const base::Time &ts, const ::base::sampl
 
 bool IKFEstimator::configureHook()
 {
-  
-    Eigen::Quaternion <double> attitude; /**< Initial attitude in case no port is connected **/
+    Eigen::Matrix< double, IKFSTATEVECTORSIZE , 1  > x_0; /** Initial vector state **/
     Eigen::Matrix <double,NUMAXIS,NUMAXIS> Ra; /**< Measurement noise convariance matrix for acc */
     Eigen::Matrix <double,NUMAXIS,NUMAXIS> Rg; /**< Measurement noise convariance matrix for gyros */
     Eigen::Matrix <double,NUMAXIS,NUMAXIS> Rm; /**< Measurement noise convariance matrix for mag */
@@ -376,17 +424,6 @@ bool IKFEstimator::configureHook()
 //     std::cout<< "Rm\n"<<Rm<<"\n";
 //     std::cout<< "P_0\n"<<P_0<<"\n";
 
-    /** Gravitational value according to the location **/
-    g = BaseEstimator::GravityModel (latitude, altitude);
-
-    /** Output port frames information */
-    rbs_b_g->sourceFrame = "Body_Frame"; /** The body Frame in Source  */
-    rbs_b_g->targetFrame = "Geographic_Frame (North-West-Up)"; /** The Geographic Frame in Target */
-
-    /** Initial values for the IKF **/
-    myikf->Init(&P_0, &Ra, &Rg, &Rm, &Qbg, &Qba, g, (double)_dip_angle.value());
-    fogikf->Init(&P_0, &Ra, &Rg, &Rm, &Qbg, &Qba, g, (double)_dip_angle.value());
-    
     
     /** Info and Warnings about the Task **/
     
@@ -396,21 +433,11 @@ bool IKFEstimator::configureHook()
     }
     else
     {
-	RTT::log(RTT::Warning) << "IMU NO connected." << RTT::endlog();
+	RTT::log(RTT::Warning) << "IMU Orientation NO connected." << RTT::endlog();
 	RTT::log(RTT::Warning) << "Initial orientation is not provided."<< RTT::endlog();
-	RTT::log(RTT::Warning) << "Zero angles attitude pointing North is then assumed." << RTT::endlog();
+	RTT::log(RTT::Warning) << "Zero Yaw angle pointing to North is then assumed." << RTT::endlog();
+	RTT::log(RTT::Warning) << "Pitch and Roll are taken from accelerometers assuming static body at Init phase." << RTT::endlog();
 	
-	/** Set the initial attitude when no initial IMU orientation is provided **/
-	attitude = Eigen::Quaternion <double> (Eigen::AngleAxisd(0.00, Eigen::Vector3d::UnitZ())*
-			Eigen::AngleAxisd(0.00, Eigen::Vector3d::UnitY()) *
-			Eigen::AngleAxisd(0.00, Eigen::Vector3d::UnitX()));
-	
-	/** Set the initial attitude quaternion of the IKF **/
-	myikf->setAttitude (&attitude);
-	fogikf->setAttitude (&attitude);
-	init_attitude = true;
-     	
-	RTT::log(RTT::Warning) << "Init: Pitch 0.00 Init: Roll 0.00 Init: Yaw 0.00" << RTT::endlog();
     }
     
     if (_fog_samples.connected())
@@ -429,8 +456,25 @@ bool IKFEstimator::configureHook()
     else
     {
 	RTT::log(RTT::Warning) << "IMU samples NO connected." << RTT::endlog();
-	RTT::log(RTT::Warning) << "Potential malfunction on the task!" << RTT::endlog();
+	RTT::log(RTT::Warning) << "Potential malfunction on the task!!" << RTT::endlog();
     }
+    
+    /** Gravitational value according to the location **/
+    g = BaseEstimator::GravityModel (latitude, altitude);
+
+    /** Output port frames information */
+    rbs_b_g->sourceFrame = "Body_Frame"; /** The body Frame in Source  */
+    rbs_b_g->targetFrame = "Geographic_Frame (North-West-Up)"; /** The Geographic Frame in Target */
+
+    /** Initial values for the IKF **/
+    myikf->Init(&P_0, &Ra, &Rg, &Rm, &Qbg, &Qba, -g, (double)_dip_angle.value());
+    fogikf->Init(&P_0, &Ra, &Rg, &Rm, &Qbg, &Qba, -g, (double)_dip_angle.value());
+    
+    /** init set the vector state to zero but it can be changed here **/
+    x_0 = Matrix<double,IKFSTATEVECTORSIZE,1>::Zero();
+    x_0.block<NUMAXIS, 1> (3,0) = _gbiasof.value();
+    x_0.block<NUMAXIS, 1> (6,0) = _abiasof.value();
+    myikf->setState(&x_0);
     
     
 

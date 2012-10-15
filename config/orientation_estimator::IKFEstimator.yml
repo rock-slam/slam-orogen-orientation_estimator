@@ -105,9 +105,9 @@ fog_samples_period: 0.008
 # no documentation available for this property
 gbiasof: 
   data: 
-  - 0.00
-  - 0.00
-  - 0.00 #-1.881326e-06
+  - 3.1396251683848041e-05
+  - 0.0004564014580275626
+  - -0.00045970399412453427
 # no documentation available for this property
 gyrorrw: 
   data: 
