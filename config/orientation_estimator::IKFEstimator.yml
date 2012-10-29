@@ -131,9 +131,9 @@ magnetic_declination_mode: 1
 # minimum system time in s between two status readings
 stream_aligner_status_period: 1.0
 # minimum time, in s, between two sequential samples arrive on imu_orientation
-imu_orientation_period: 0.01
+imu_orientation_period: 0.008
 # minimum time, in s, between two sequential samples arrive on imu_samples
-imu_samples_period: 0.01
+imu_samples_period: 0.008
 #Random Wlak for Magnetometers
 magrw:
   data: 

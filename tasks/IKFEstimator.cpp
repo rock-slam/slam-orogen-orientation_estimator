@@ -261,6 +261,7 @@ void IKFEstimator::imu_samplesCallback(const base::Time &ts, const ::base::sampl
       imu_time = (double)imu_samples_sample.time.toMilliseconds();
 
 //       std::cout << "Gyros(rad/sec)\n"<< (*imu_gyros)[0]<<","<< (*imu_gyros)[1]<<","<< (*imu_gyros)[2]<<"\n";
+//       std::cout<<"Delta_time: "<<imu_dt<<"\n";
       
       /** Substract the Earth Rotation from the gyros output */
       qb_g = myikf->getAttitude(); /** Rotation with respect to the geographic frame (North-Up-West) */
@@ -334,7 +335,7 @@ void IKFEstimator::imu_samplesCallback(const base::Time &ts, const ::base::sampl
   }
   else if (!_imu_orientation.connected())
   {
-      /** Add one acc smaple to teh buffer **/
+      /** Add one acc sample to the buffer **/
       init_acc->col(accidx) = imu_samples_sample.acc;
       accidx++;
 
@@ -419,7 +420,7 @@ bool IKFEstimator::configureHook()
     Qbg = 0.00000000001 * Matrix <double,NUMAXIS,NUMAXIS>::Identity();
     Qba = 0.00000000001 * Matrix <double,NUMAXIS,NUMAXIS>::Identity();
 
-//      std::cout<< "Ra\n"<<Ra<<"\n";
+//     std::cout<< "Ra\n"<<Ra<<"\n";
 //     std::cout<< "Rg\n"<<Rg<<"\n";
 //     std::cout<< "Rm\n"<<Rm<<"\n";
 //     std::cout<< "P_0\n"<<P_0<<"\n";
