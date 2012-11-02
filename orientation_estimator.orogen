@@ -268,7 +268,10 @@ task_context 'UKFEstimator' do
 end
 
 
-deployment "orientation_estimator" do
+deployment "orientation_estimator_test" do
+    # This is a test deployment that should not be installed
+    do_not_install
+
     orientation_task = task("orientation_estimator", "BaseEstimator")
     add_default_logger
     if !corba_enabled?
@@ -276,7 +279,10 @@ deployment "orientation_estimator" do
     end
 end
 
-deployment "ikf_orientation_estimator" do
+deployment "ikf_orientation_estimator_test" do
+    # This is a test deployment that should not be installed
+    do_not_install
+
     ikforientation_task = task("ikf_orientation_estimator", "IKFEstimator")
     add_default_logger
     if !corba_enabled?
@@ -284,7 +290,10 @@ deployment "ikf_orientation_estimator" do
     end
 end
 
-deployment "ukf_orientation_estimator" do
+deployment "ukf_orientation_estimator_test" do
+    # This is a test deployment that should not be installed
+    do_not_install
+
     ukforientation_task = task("ukf_orientation_estimator", "UKFEstimator")
     add_default_logger
     if !corba_enabled?

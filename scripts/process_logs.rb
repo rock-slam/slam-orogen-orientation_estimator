@@ -14,7 +14,7 @@ end
 #Initializes the CORBA communication layer
 Orocos.initialize
 
-Orocos.run('orientation_estimator', 'ikf_orientation_estimator', 'ukf_orientation_estimator') do 
+Orocos.run('orientation_estimator_test', 'ikf_orientation_estimator_test', 'ukf_orientation_estimator_test') do 
   
     # log all the output ports
     Orocos.log_all_ports 

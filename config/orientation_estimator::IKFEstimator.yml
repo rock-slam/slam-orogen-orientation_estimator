@@ -86,9 +86,9 @@ accrrw:
 # no documentation available for this property
 accrw: 
   data: 
-  - 0.0009858879
-  - 0.001097635
-  - 0.001070773 
+  - 0.05 #0.0009858879 std in error of the gravity vector = 0.0054785914701378034
+  - 0.05 #0.001097635 std in error of the gravity vector = 0.0061094546837916494
+  - 0.05 #0.001070773 std in error of the gravity vector = 0.0063186020143245212
 # maximum latency, in seconds, of the stream aligner. The aligner will start dropping samples if the difference between the last output and last input is greater than this
 aggregator_max_latency: 0.1
 # Altitude of Bremen in meters
