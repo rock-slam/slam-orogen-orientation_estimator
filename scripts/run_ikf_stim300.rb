@@ -42,7 +42,7 @@ Orocos.run('ikf_orientation_estimator_test') do
     ikf_attitude_task.start
 
     loop do        
-	sleep 0.01
+	sleep 0.5
     end
     
 end

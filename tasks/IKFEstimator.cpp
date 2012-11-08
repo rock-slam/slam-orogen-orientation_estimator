@@ -420,10 +420,10 @@ bool IKFEstimator::configureHook()
     Qbg = 0.00000000001 * Matrix <double,NUMAXIS,NUMAXIS>::Identity();
     Qba = 0.00000000001 * Matrix <double,NUMAXIS,NUMAXIS>::Identity();
 
-//     std::cout<< "Ra\n"<<Ra<<"\n";
-//     std::cout<< "Rg\n"<<Rg<<"\n";
-//     std::cout<< "Rm\n"<<Rm<<"\n";
-//     std::cout<< "P_0\n"<<P_0<<"\n";
+    std::cout<< "Ra\n"<<Ra<<"\n";
+    std::cout<< "Rg\n"<<Rg<<"\n";
+    std::cout<< "Rm\n"<<Rm<<"\n";
+    std::cout<< "P_0\n"<<P_0<<"\n";
 
     
     /** Info and Warnings about the Task **/
