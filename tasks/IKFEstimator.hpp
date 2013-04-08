@@ -8,29 +8,6 @@
 
 namespace orientation_estimator {
     
-    /** General defines **/
-    #ifndef OK
-    #define OK	0  /**< Integer value in order to return when everything is all right. */
-    #endif
-    #ifndef ERROR
-    #define ERROR -1  /**< Integer value in order to return when an error occured. */
-    #endif
-    
-    #ifndef QUATERSIZE
-    #define QUATERSIZE 4 /**< Number of parameters of a quaternion **/
-    #endif
-    
-    /** Sensors constant parameters **/
-    #ifndef NUMAXIS
-    #define NUMAXIS 3 /**< Number of axis sensed by the sensors **/
-    #endif
-    
-    /** Sensors constant parameters **/
-    #ifndef NUMBER_INIT_ACC
-    #define NUMBER_INIT_ACC 256 /**< Number acc samples to compute initial pitch and roll considering not init_attitude provided by imu_orientationCallback**/
-    #endif
-    
-    
     /** Xsens MTi defines **/
     /** The values are in the configuration file **/
 
@@ -51,6 +28,11 @@ namespace orientation_estimator {
     class IKFEstimator : public IKFEstimatorBase
     {
 	friend class IKFEstimatorBase;
+        enum CONSTS {
+          NUMBER_INIT_ACC = 256,
+          IKFSTATEVECTORSIZE = filter::ikf::IKFSTATEVECTORSIZE,
+          NUMAXIS = filter::ikf::NUMAXIS
+        };
     protected:
 
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW

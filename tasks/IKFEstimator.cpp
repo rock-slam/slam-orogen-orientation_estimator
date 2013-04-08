@@ -22,7 +22,9 @@
 
 #include "IKFEstimator.hpp"
 #include "BaseEstimator.hpp"
+#include <base/angle.h>
 
+using base::Angle;
 using namespace orientation_estimator;
 using namespace filter;
 
@@ -207,7 +209,7 @@ void IKFEstimator::imu_orientationCallback(const base::Time &ts, const ::base::s
      euler[0] = attitude.toRotationMatrix().eulerAngles(2,1,0)[2];//ROLL
      
      std::cout << "Orientation (Quaternion): "<< attitude.w()<<","<<attitude.x()<<","<<attitude.y()<<","<<attitude.z()<<"\n";
-     std::cout << "(Roll, Pitch, Yaw)\n"<< euler*R2D <<"\n";
+     std::cout << "(Roll, Pitch, Yaw)\n"<< Angle::rad2Deg(euler.x()) << "," << Angle::rad2Deg(euler.y()) << "," << Angle::rad2Deg(euler.z()) << "\n";
      std::cout << "**********************\n";
      
      (*oldeuler) = euler;
@@ -367,7 +369,7 @@ void IKFEstimator::imu_samplesCallback(const base::Time &ts, const ::base::sampl
 	init_attitude = true;
      	
 	RTT::log(RTT::Info) << "******** Init Attitude IKFEstimator *******"<< RTT::endlog();
-	RTT::log(RTT::Info) << "Init Roll: "<<euler[0]*R2D<<"Init Pitch: "<<euler[1]*R2D<<"Init Yaw: "<<euler[2]<< RTT::endlog();
+	RTT::log(RTT::Info) << "Init Roll: "<<Angle::rad2Deg(euler[0])<<"Init Pitch: "<<Angle::rad2Deg(euler[1])<<"Init Yaw: "<<Angle::rad2Deg(euler[2])<< RTT::endlog();
       }
       
       
