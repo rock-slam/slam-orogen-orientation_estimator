@@ -22,7 +22,9 @@
 
 #include "UKFEstimator.hpp"
 #include "BaseEstimator.hpp"
+#include <base/angle.h>
 
+using base::Angle;
 using namespace orientation_estimator;
 using namespace filter;
 
@@ -179,7 +181,7 @@ void UKFEstimator::imu_orientationCallback(const base::Time &ts, const ::base::s
 	euler[0] = attitude.toRotationMatrix().eulerAngles(2,1,0)[2];//ROLL
 	
 	std::cout << "Orientation (Quaternion): "<< attitude.w()<<","<<attitude.x()<<","<<attitude.y()<<","<<attitude.z()<<"\n";
-	std::cout << "(Roll, Pitch, Yaw)\n"<< euler*R2D <<"\n";
+	std::cout << "(Roll, Pitch, Yaw)\n"<< Angle::rad2Deg(euler[0])<<" "<<Angle::rad2Deg(euler[1])<<" "<<Angle::rad2Deg(euler[2])<<"\n";
 	std::cout << "**********************\n";
 	
 	(*oldeuler) = euler;	

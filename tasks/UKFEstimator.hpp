@@ -16,15 +16,6 @@ namespace orientation_estimator {
     #define ERROR -1  /**< Integer value in order to return when an error occured. */
     #endif
 
-    #ifndef QUATERSIZE
-    #define QUATERSIZE 4 /**< Number of parameters of a quaternion **/
-    #endif
-
-    /** Sensors constant parameters **/
-    #ifndef NUMAXIS
-    #define NUMAXIS 3 /**< Number of axis sensed by the sensors **/
-    #endif
-
     
     
     /*! \class UKFEstimator 
@@ -44,8 +35,16 @@ namespace orientation_estimator {
     class UKFEstimator : public UKFEstimatorBase
     {
 	friend class UKFEstimatorBase;
+
+        enum CONSTS {
+            UKFSTATEVECTORSIZE = filter::ukf::UKFSTATEVECTORSIZE,
+            QUATERSIZE = filter::ukf::QUATERSIZE,
+            NUMAXIS = filter::ukf::NUMAXIS
+        };
+
     protected:
-	
+
+        EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 	double imu_time, imu_dt; /**< Delta time coming for Xsens values */
 	double fog_time, fog_dt; /**< Delta time coming for FOG values */
 	bool flag_imu_time, flag_fog_time, init_attitude; /** Control flags */
