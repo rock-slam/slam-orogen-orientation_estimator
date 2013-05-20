@@ -18,6 +18,29 @@
 
 #include "BaseEstimator.hpp"
 
+/** WGS-84 ellipsoid constants (Nominal Gravity Model and Earth angular velocity) **/
+#ifndef Re
+#define Re	6378137 /**< Equatorial radius in meters **/
+#endif
+#ifndef Rp
+#define Rp	6378137 /**< Polar radius in meters **/
+#endif
+#ifndef ECC
+#define ECC  0.0818191908426 /**< First eccentricity **/
+#endif
+#ifndef GRAVITY
+#define GRAVITY 9.79766542 /**< Mean value of gravity value in m/s^2 **/
+#endif
+#ifndef GWGS0
+#define GWGS0 9.7803267714 /**< Gravity value at the equator in m/s^2 **/
+#endif
+#ifndef GWGS1
+#define GWGS1 0.00193185138639 /**< Gravity formula constant **/
+#endif
+#ifndef EARTHW
+#define EARTHW  7.292115e-05 /**< Earth angular velocity in rad/s **/
+#endif
+ 
 using namespace orientation_estimator;
 
 /**
@@ -117,7 +140,7 @@ void BaseEstimator::fog_samplesCallback(const base::Time &ts, const ::base::samp
       /** Get the Yaw from the FOG integration **/
       (*euler)[2] = head_q->toRotationMatrix().eulerAngles(2,1,0)[0];//YAW
 //        std::cout << "fog_gyros: "<< fog_gyros[2] <<"\n";
-//       std::cout << "Heading(FOG): "<< (*euler)[2]*(180.00/PI) <<"\n";
+//       std::cout << "Heading(FOG): "<< (*euler)[2]*(180.00/M_PI) <<"\n";
 
     }
   }
@@ -164,7 +187,7 @@ void BaseEstimator::imu_orientationCallback(const base::Time &ts, const ::base::
 	(*oldeuler)= (*euler);
 
 	std::cout << "BaseEstimator Orientation (Quaternion): "<< attitude.w()<<","<<attitude.x()<<","<<attitude.y()<<","<<attitude.z()<<"\n";
-	std::cout << "(Roll, Pitch, Yaw)\n"<< (*euler)*(180.00/PI) <<"\n";
+	std::cout << "(Roll, Pitch, Yaw)\n"<< (*euler)*(180.00/M_PI) <<"\n";
 	std::cout << "**********************\n";
    }
    else
@@ -174,7 +197,7 @@ void BaseEstimator::imu_orientationCallback(const base::Time &ts, const ::base::
 	(*euler)[0] = attitude.toRotationMatrix().eulerAngles(2,1,0)[2];//ROLL
 
 // 	std::cout << "BaseEstimator Orientation (Quaternion): "<< attitude.w()<<","<<attitude.x()<<","<<attitude.y()<<","<<attitude.z()<<"\n";
-// 	std::cout << "(Roll, Pitch, Yaw)\n"<< (*euler)*(180.00/PI) <<"\n";
+// 	std::cout << "(Roll, Pitch, Yaw)\n"<< (*euler)*(180.00/M_PI) <<"\n";
 // 	std::cout << "**********************\n";
 
 	/** Write the Angular velocity (as the different between two orientations in radians)*/
@@ -323,7 +346,7 @@ double BaseEstimator::GravityModel(double latitude, double altitude)
 /**
 * @brief Correct the magnetic declination of the North 
 */
-int BaseEstimator::CorrectMagneticDeclination(Eigen::Quaternion< double >* quat, double magnetic_declination, int mode)
+bool BaseEstimator::CorrectMagneticDeclination(Eigen::Quaternion< double >* quat, double magnetic_declination, int mode)
 {
     Eigen::Matrix <double, NUMAXIS, 1> euler;
 	
@@ -344,14 +367,14 @@ int BaseEstimator::CorrectMagneticDeclination(Eigen::Quaternion< double >* quat,
     else
     {
     std::cerr << "[ERROR] In the correction of the magnetic declination\n";
-    return ERROR;
+    return false;
     }
     
     *quat = Eigen::Quaternion <double> (Eigen::AngleAxisd(euler[0], Eigen::Vector3d::UnitX())*
 			Eigen::AngleAxisd(euler[1], Eigen::Vector3d::UnitY()) *
 			Eigen::AngleAxisd(euler[2], Eigen::Vector3d::UnitZ()));
     
-    return OK;
+    return true;
 }
 
 /// The following lines are template definitions for the various state machine

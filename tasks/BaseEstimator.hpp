@@ -3,6 +3,7 @@
 #ifndef ORIENTATION_ESTIMATOR_BASEESTIMATOR_TASK_HPP
 #define ORIENTATION_ESTIMATOR_BASEESTIMATOR_TASK_HPP
 
+#include <math.h>
 #include <Eigen/Geometry> /**< Eigen data type for Matrix, Quaternion, etc... */
 #include "orientation_estimator/BaseEstimatorBase.hpp"
 
@@ -22,58 +23,21 @@ namespace orientation_estimator {
      \endverbatim
      *  It can be dynamically adapted when the deployment is called with a prefix argument. 
      */
-    
-    /** General defines **/
-    #ifndef OK
-    #define OK	0  /**< Integer value in order to return when everything is all right. */
-    #endif
-    #ifndef ERROR
-    #define ERROR	-1  /**< Integer value in order to return when an error occured. */
-    #endif
-    
-    #define EAST 1 /**< EAST is 1 and means positive magnetic declination **/
-    #define WEST 2 /**< WEST is 2 and means negative magnetic declination **/
-  
-    /** Sensors constant parameters **/
-    #ifndef NUMAXIS
-    #define NUMAXIS 3 /**< Number of axis sensed by the sensors **/
-    #endif
-    
-    #ifndef QUATERSIZE
-    #define QUATERSIZE 4 /**< Number of parameters of a quaternion **/
-    #endif
-    
-    #ifndef PI
-    #define PI 3.141592653589793238462643383279502884197169399375105820974944592307816406286 /**< Pi Number */
-    #endif
-    
-    /** WGS-84 ellipsoid constants (Nominal Gravity Model and Earth angular velocity) **/
-    #ifndef Re
-    #define Re	6378137 /**< Equatorial radius in meters **/
-    #endif
-    #ifndef Rp
-    #define Rp	6378137 /**< Polar radius in meters **/
-    #endif
-    #ifndef ECC
-    #define ECC  0.0818191908426 /**< First eccentricity **/
-    #endif
-    #ifndef GRAVITY
-    #define GRAVITY 9.79766542 /**< Mean value of gravity value in m/s^2 **/
-    #endif
-    #ifndef GWGS0
-    #define GWGS0 9.7803267714 /**< Gravity value at the equator in m/s^2 **/
-    #endif
-    #ifndef GWGS1
-    #define GWGS1 0.00193185138639 /**< Gravity formula constant **/
-    #endif
-    #ifndef EARTHW
-    #define EARTHW  7.292115e-05 /**< Earth angular velocity in rad/s **/
-    #endif
-  
-    
     class BaseEstimator : public BaseEstimatorBase
     {
 	friend class BaseEstimatorBase;
+
+        /** Sensors constant parameters **/
+        enum CONSTS {
+          NUMAXIS = 3,
+          QUATERSIZE = 4
+        };
+
+        enum DECLINATION_CONSTS {
+          EAST = 1, /** EAST is 1 and means positive magnetic declination **/
+          WEST = 2 /** WEST is 2 and means negative magnetic declination **/
+        };
+
     protected:
 
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -159,7 +123,7 @@ namespace orientation_estimator {
 	* @return OK is everything all right. ERROR on other cases.
 	*
 	*/
-	static int CorrectMagneticDeclination (Eigen::Quaternion <double> *quat, double magnetic_declination,  int mode);
+	static bool CorrectMagneticDeclination (Eigen::Quaternion <double> *quat, double magnetic_declination,  int mode);
 	
         /** TaskContext constructor for BaseEstimator
          * \param name Name of the task. This name needs to be unique to make it identifiable via nameservices.
