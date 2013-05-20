@@ -292,7 +292,7 @@ void IKFEstimator::imu_samplesCallback(const base::Time &ts, const ::base::sampl
     }
     
 //     std::cout << "IKFEstimator\n";
-//     std::cout << "(Roll, Pitch, Yaw)\n"<< euler[0]*R2D<<","<< euler[1]*R2D<<","<< euler[2]*R2D<<"\n";
+//     std::cout << "(Roll, Pitch, Yaw)\n"<< Angle::rad2Deg(euler[0])<<","<< Angle::rad2Deg(euler[1])<<","<< Angle::rad2Deg(euler[2]) <<"\n";
 //     std::cout << "**********************\n";
      
     auxq = Eigen::Quaternion <double> (Eigen::AngleAxisd(euler[2], Eigen::Vector3d::UnitZ())*
