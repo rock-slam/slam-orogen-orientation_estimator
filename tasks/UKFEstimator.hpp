@@ -42,9 +42,10 @@ namespace orientation_estimator {
             NUMAXIS = filter::ukf::NUMAXIS
         };
 
-    protected:
-
+    public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+    protected:
 	double imu_time, imu_dt; /**< Delta time coming for Xsens values */
 	double fog_time, fog_dt; /**< Delta time coming for FOG values */
 	bool flag_imu_time, flag_fog_time, init_attitude; /** Control flags */
