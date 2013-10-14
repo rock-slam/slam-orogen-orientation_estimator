@@ -40,7 +40,6 @@ namespace orientation_estimator {
 
     protected:
 
-	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 	double fog_time, fog_dt; /**< Delta time coming for FOG values */
 	bool flag_fog_time, init_attitude; /**< Control flags */
 	Eigen::Quaternion <double> *head_q; /**< Quaternion for the yaw (heading) */
@@ -53,6 +52,7 @@ namespace orientation_estimator {
         virtual void imu_orientationCallback(const base::Time &ts, const ::base::samples::RigidBodyState &imu_orientation_sample);
 
     public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 	
 	/**
 	* @brief This function computes the discrete-time propagation of a quaternion

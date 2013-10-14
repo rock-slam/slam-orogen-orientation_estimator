@@ -35,7 +35,6 @@ namespace orientation_estimator {
         };
     protected:
 
-	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 	int accidx; /** index for acc mean value for init attitude **/
 	double imu_time, imu_dt; /**< Delta time coming for Xsens values */
 	double fog_time, fog_dt; /**< Delta time coming for FOG values */
@@ -111,6 +110,8 @@ namespace orientation_estimator {
 
 
     public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
         /** TaskContext constructor for IKFEstimator
          * \param name Name of the task. This name needs to be unique to make it identifiable via nameservices.
          * \param initial_state The initial TaskState of the TaskContext. Default is Stopped state.
