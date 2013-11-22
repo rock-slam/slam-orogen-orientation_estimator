@@ -138,7 +138,7 @@ void BaseEstimator::fog_samplesCallback(const base::Time &ts, const ::base::samp
       BaseEstimator::PropagateHeadingQuaternion (head_q, &fog_gyros, fog_dt);
       
       /** Get the Yaw from the FOG integration **/
-      (*euler)[2] = head_q->toRotationMatrix().eulerAngles(2,1,0)[0];//YAW
+      (*euler)[2] = base::getEuler(*head_q)[0];//YAW
 //        std::cout << "fog_gyros: "<< fog_gyros[2] <<"\n";
 //       std::cout << "Heading(FOG): "<< (*euler)[2]*(180.00/M_PI) <<"\n";
 
@@ -179,9 +179,9 @@ void BaseEstimator::imu_orientationCallback(const base::Time &ts, const ::base::
 	(*head_q) = attitude;
 	init_attitude = true;
 	
-	(*euler)[2] = attitude.toRotationMatrix().eulerAngles(2,1,0)[0];//YAW
-	(*euler)[1] = attitude.toRotationMatrix().eulerAngles(2,1,0)[1];//PITCH
-	(*euler)[0] = attitude.toRotationMatrix().eulerAngles(2,1,0)[2];//ROLL
+	(*euler)[2] = base::getEuler(attitude)[0];//YAW
+	(*euler)[1] = base::getEuler(attitude)[1];//PITCH
+	(*euler)[0] = base::getEuler(attitude)[2];//ROLL
 	
 	/** Store the euler angle for the first time **/
 	(*oldeuler)= (*euler);
@@ -193,8 +193,8 @@ void BaseEstimator::imu_orientationCallback(const base::Time &ts, const ::base::
    else
    {
 	/** Get Picth and Roll from Xsens **/
-	(*euler)[1] = attitude.toRotationMatrix().eulerAngles(2,1,0)[1];//PITCH
-	(*euler)[0] = attitude.toRotationMatrix().eulerAngles(2,1,0)[2];//ROLL
+	(*euler)[1] = base::getEuler(attitude)[1];//PITCH
+	(*euler)[0] = base::getEuler(attitude)[2];//ROLL
 
 // 	std::cout << "BaseEstimator Orientation (Quaternion): "<< attitude.w()<<","<<attitude.x()<<","<<attitude.y()<<","<<attitude.z()<<"\n";
 // 	std::cout << "(Roll, Pitch, Yaw)\n"<< (*euler)*(180.00/M_PI) <<"\n";
@@ -350,9 +350,9 @@ bool BaseEstimator::CorrectMagneticDeclination(Eigen::Quaternion< double >* quat
 {
     Eigen::Matrix <double, NUMAXIS, 1> euler;
 	
-    euler[2] = quat->toRotationMatrix().eulerAngles(2,1,0)[0];//YAW
-    euler[1] = quat->toRotationMatrix().eulerAngles(2,1,0)[1];//PITCH
-    euler[0] = quat->toRotationMatrix().eulerAngles(2,1,0)[2];//ROLL
+    euler[2] = base::getEuler(*quat)[0];//YAW
+    euler[1] = base::getEuler(*quat)[1];//PITCH
+    euler[0] = base::getEuler(*quat)[2];//ROLL
     
     if (mode == EAST)
     {

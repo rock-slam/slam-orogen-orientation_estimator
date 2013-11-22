@@ -203,10 +203,10 @@ void IKFEstimator::imu_orientationCallback(const base::Time &ts, const ::base::s
      myikf->setAttitude (&attitude);
      fogikf->setAttitude (&attitude);
      init_attitude = true;    
-     
-     euler[2] = attitude.toRotationMatrix().eulerAngles(2,1,0)[0];//YAW
-     euler[1] = attitude.toRotationMatrix().eulerAngles(2,1,0)[1];//PITCH
-     euler[0] = attitude.toRotationMatrix().eulerAngles(2,1,0)[2];//ROLL
+    
+     euler[2] = base::getEuler(attitude)[0];//YAW
+     euler[1] = base::getEuler(attitude)[1];//PITCH
+     euler[0] = base::getEuler(attitude)[2];//ROLL
      
      std::cout << "Orientation (Quaternion): "<< attitude.w()<<","<<attitude.x()<<","<<attitude.y()<<","<<attitude.z()<<"\n";
      std::cout << "(Roll, Pitch, Yaw)\n"<< Angle::rad2Deg(euler.x()) << "," << Angle::rad2Deg(euler.y()) << "," << Angle::rad2Deg(euler.z()) << "\n";
