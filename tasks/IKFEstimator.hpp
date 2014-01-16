@@ -4,7 +4,7 @@
 #define ORIENTATION_ESTIMATOR_IKFESTIMATOR_TASK_HPP
 
 #include "orientation_estimator/IKFEstimatorBase.hpp"
-#include <quater_ikf/ikf.h> /**< IKF header file*/
+#include <quater_ikf/Ikf.hpp> /**< IKF header file*/
 
 namespace orientation_estimator {
     
@@ -30,10 +30,13 @@ namespace orientation_estimator {
 	friend class IKFEstimatorBase;
         enum CONSTS {
           NUMBER_INIT_ACC = 256,
-          IKFSTATEVECTORSIZE = filter::ikf::IKFSTATEVECTORSIZE,
-          NUMAXIS = filter::ikf::NUMAXIS
+          IKFSTATEVECTORSIZE = filter::Ikf<double, true, false>::IKFSTATEVECTORSIZE,
+          NUMAXIS = 3
         };
     protected:
+
+        /** Adaptive Measurement Configuration **/
+        AdaptiveAttitudeConfig adaptiveconfig;
 
 	int accidx; /** index for acc mean value for init attitude **/
 	double imu_time, imu_dt; /**< Delta time coming for Xsens values */
@@ -43,8 +46,8 @@ namespace orientation_estimator {
 	Eigen::Matrix <double,NUMAXIS,1> *imu_acc; /**< Acceleremeters from Xsens */
 	Eigen::Matrix <double,NUMAXIS,1> *imu_mag; /**< Magnetometers from Xsens */
 	Eigen::Matrix <double,NUMAXIS,1> *fog_gyros; /**< Angular velocity for the FOG */
-	filter::ikf *myikf; /**< The adaptive Indirect kalman filter */
-	filter::ikf *fogikf; /**< The adaptive Indirect kalman filter */
+	filter::Ikf<double, true, false> *myikf; /**< The adaptive Indirect kalman filter */
+	filter::Ikf<double, true, false> *fogikf; /**< The adaptive Indirect kalman filter */
 	base::samples::RigidBodyState *rbs_b_g; /**< Output RigidBody State containin the orientation and angular velocity of the body */
 	Eigen::Matrix <double, NUMAXIS, 1> *oldeuler; /**< Euler angles for the angular velocity estimation */
 	Eigen::Matrix <double,NUMAXIS, NUMBER_INIT_ACC> *init_acc; /**< Initial values of Acceleremeters for Picth and Roll calculation */

@@ -3,6 +3,8 @@ version '1.0'
 
 import_types_from "base"
 import_types_from "aggregator"
+import_types_from "orientationTypes.hpp"
+
 using_library "aggregator"
 using_library "quater_ikf"
 using_library "quater_ukf"
@@ -134,11 +136,16 @@ task_context 'IKFEstimator' do
     property('dip_angle', 'double', 1.187696556).
 	doc 'Dip angle of Bremen in radians (equivalent to 68.05 degrees ).'    
 
- 
+    #****************************
+    #**** Adaptive Properties ***
+    #****************************
+    property('adaptive_config', 'orientation_estimator/AdaptiveAttitudeConfig').
+        doc 'Adaptive estimation of external acceleration.'
+
     #******************************
     #**** Sensor Properties *****
     #******************************
-    
+
     #**** For Gyroscopes ****
 
     property('gbiasof', '/base/Vector3d')
@@ -149,7 +156,7 @@ task_context 'IKFEstimator' do
 	doc "rate random walk for gyroscopes (rad/s/sqrt(s))"
 
     #**** For Accelerometers ****
-    
+
     property "abiasof", "/base/Vector3d"
 	doc 'bias offset in static regimen for the Accelerometers'
     property "accrw", "/base/Vector3d"

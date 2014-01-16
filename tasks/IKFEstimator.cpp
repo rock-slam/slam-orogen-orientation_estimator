@@ -40,7 +40,7 @@ using namespace filter;
 IKFEstimator::IKFEstimator(std::string const& name)
     : IKFEstimatorBase(name)
 {
-  
+
   accidx = 0;
   imu_gyros = new Eigen::Matrix <double,NUMAXIS,1>;
   imu_acc = new Eigen::Matrix <double,NUMAXIS,1>;
@@ -50,9 +50,9 @@ IKFEstimator::IKFEstimator(std::string const& name)
   rbs_b_g->invalidate();
   oldeuler = new Eigen::Matrix <double, NUMAXIS, 1>;
   init_acc = new Eigen::Matrix <double,NUMAXIS,NUMBER_INIT_ACC>;
-  myikf = new ikf;
-  fogikf = new ikf;
-  
+  myikf = new filter::Ikf<double, true, false>;
+  fogikf = new filter::Ikf<double, true, false>;
+
   backup = new base::samples::IMUSensors;
   
   flag_imu_time  = false;
@@ -135,7 +135,7 @@ void IKFEstimator::fog_samplesCallback(const base::Time &ts, const ::base::sampl
 	(*fog_gyros)[1] = 0.00;
       if ((*fog_gyros)[2] != (*fog_gyros)[2]) //If NaN?
 	(*fog_gyros)[2] = 0.00;
-      fogikf->setOmega (fog_gyros);
+      fogikf->setOmega (*fog_gyros);
       flag_fog_time = true;
     }
     else
@@ -154,13 +154,8 @@ void IKFEstimator::fog_samplesCallback(const base::Time &ts, const ::base::sampl
       (*fog_gyros)[1] = 0.00;
       (*fog_gyros)[2] = (*fog_gyros)[2] - _gbiasof.get()[2];
       
+      fogikf->predict (*fog_gyros, fog_dt);
       
-      fogikf->getEuler();
-      
-      fogikf->predict (fog_gyros, fog_dt);
-      
-      fogikf->getEuler();
-
 
     }
   }
@@ -200,8 +195,8 @@ void IKFEstimator::imu_orientationCallback(const base::Time &ts, const ::base::s
      BaseEstimator::CorrectMagneticDeclination (&attitude, _magnetic_declination.value(), _magnetic_declination_mode.value());
      
      /** Set the initial attitude quaternion of the IKF **/
-     myikf->setAttitude (&attitude);
-     fogikf->setAttitude (&attitude);
+     myikf->setAttitude (attitude);
+     fogikf->setAttitude (attitude);
      init_attitude = true;    
     
      euler[2] = base::getEuler(attitude)[0];//YAW
@@ -254,7 +249,7 @@ void IKFEstimator::imu_samplesCallback(const base::Time &ts, const ::base::sampl
     if (flag_imu_time == false)
     {
       imu_time = (double)imu_samples_sample.time.toMilliseconds();
-      myikf->setOmega (imu_gyros);
+      myikf->setOmega (*imu_gyros);
       flag_imu_time = true;
     }
     else
@@ -276,19 +271,21 @@ void IKFEstimator::imu_samplesCallback(const base::Time &ts, const ::base::sampl
 	  (*imu_gyros)[2] = 0.00;
    
       /** Perform the Indirect Kalman Filter */
-      myikf->predict (imu_gyros, imu_dt);
-      myikf->update (imu_acc, imu_mag, _use_magnetometers.value());
+      myikf->predict (*imu_gyros, imu_dt);
+      myikf->update (*imu_acc, true, *imu_mag, _use_magnetometers.value());
     }
-    
+
     /** Get Attitude en Euler **/
-    euler = myikf->getEuler();
-    
+    euler[2] = base::getEuler(myikf->getAttitude())[0];//YAW
+    euler[1] = base::getEuler(myikf->getAttitude())[1];//PITCH
+    euler[0] = base::getEuler(myikf->getAttitude())[2];//ROLL
+
     /** Out in the Outports  */
     rbs_b_g->time = imu_samples_sample.time; //base::Time::now(); /** Set the timestamp */
     
     if (_fog_samples.connected())
     {
-	euler[2] = ((Eigen::Matrix <double, NUMAXIS, 1>) fogikf->getEuler())[2];
+	euler[2] = base::getEuler(fogikf->getAttitude())[0];//YAW
     }
     
 //     std::cout << "IKFEstimator\n";
@@ -308,10 +305,10 @@ void IKFEstimator::imu_samplesCallback(const base::Time &ts, const ::base::sampl
     /** Also update the quaternion used by the fog callback function **/
     if (_fog_samples.connected())
     {
-	fogikf->setAttitude(&auxq);
+	fogikf->setAttitude(auxq);
 	
 	/** Also the heading changed due to fog heading, update in the myikf extructure **/
-	myikf->setAttitude(&auxq);
+	myikf->setAttitude(auxq);
     }
     
     /** Write the Angular velocity (as the different between two orientations in radians)*/
@@ -364,17 +361,17 @@ void IKFEstimator::imu_samplesCallback(const base::Time &ts, const ::base::sampl
 	Eigen::AngleAxisd(euler[0], Eigen::Vector3d::UnitX()));
 	
 	/** Set the initial attitude quaternion of the IKF **/
-	myikf->setAttitude (&attitude);
-	fogikf->setAttitude (&attitude);
+	myikf->setAttitude (attitude);
+	fogikf->setAttitude (attitude);
 	init_attitude = true;
-     	
+	
 	RTT::log(RTT::Info) << "******** Init Attitude IKFEstimator *******"<< RTT::endlog();
 	RTT::log(RTT::Info) << "Init Roll: "<<Angle::rad2Deg(euler[0])<<"Init Pitch: "<<Angle::rad2Deg(euler[1])<<"Init Yaw: "<<Angle::rad2Deg(euler[2])<< RTT::endlog();
       }
-      
-      
+
+
   }
-  
+
   return;
 }
 
@@ -395,7 +392,11 @@ bool IKFEstimator::configureHook()
     double altitude = (double)_altitude.value();
     double g;
     
-    
+    /************************/
+    /** Read configuration **/
+    /************************/
+    adaptiveconfig = _adaptive_config.value();
+
     /** Fill the matrices **/
     Ra = Matrix<double,NUMAXIS,NUMAXIS>::Zero();
     
@@ -470,18 +471,20 @@ bool IKFEstimator::configureHook()
     rbs_b_g->targetFrame = "Geographic_Frame (North-West-Up)"; /** The Geographic Frame in Target */
 
     /** Initial values for the IKF **/
-    myikf->Init(&P_0, &Ra, &Rg, &Rm, &Qbg, &Qba, g, (double)_dip_angle.value());
-    fogikf->Init(&P_0, &Ra, &Rg, &Rm, &Qbg, &Qba, g, (double)_dip_angle.value());
-    
+    myikf->Init(P_0, Ra, Rg, Rm, Ra, Qbg, Qba, Qba, g, (double)_dip_angle.value(),
+            adaptiveconfig.M1, adaptiveconfig.M2, adaptiveconfig.gamma,
+            adaptiveconfig.M1, adaptiveconfig.M2, adaptiveconfig.gamma);
+    fogikf->Init(P_0, Ra, Rg, Rm, Ra, Qbg, Qba, Qba, g, (double)_dip_angle.value(),
+            adaptiveconfig.M1, adaptiveconfig.M2, adaptiveconfig.gamma,
+            adaptiveconfig.M1, adaptiveconfig.M2, adaptiveconfig.gamma);
+
     /** init set the vector state to zero but it can be changed here **/
     x_0 = Matrix<double,IKFSTATEVECTORSIZE,1>::Zero();
     x_0.block<NUMAXIS, 1> (3,0) = _gbiasof.value();
     x_0.block<NUMAXIS, 1> (6,0) = _abiasof.value();
-    myikf->setState(&x_0);
-    
-    
+    myikf->setState(x_0);
 
-    return IKFEstimatorBase::configureHook();;  
+    return IKFEstimatorBase::configureHook();
 }
 bool IKFEstimator::startHook()
 {
