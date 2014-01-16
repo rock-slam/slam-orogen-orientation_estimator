@@ -383,14 +383,7 @@ bool BaseEstimator::CorrectMagneticDeclination(Eigen::Quaternion< double >* quat
 
 bool BaseEstimator::configureHook()
 {
-  double latitude = (double)_latitude.value();
-  double altitude = (double)_altitude.value();
-  double g;
-  
- 
-  /** Gravitational value according to the location **/
-  g = GravityModel (latitude, altitude);
-  
+
   /** Output port frames information */
   rbs_b_g->sourceFrame = "Body_Frame"; /** The body Frame in Source  */
   rbs_b_g->targetFrame = "Geographic_Frame (North-West-Up)"; /** The Geographic Frame in Target */
