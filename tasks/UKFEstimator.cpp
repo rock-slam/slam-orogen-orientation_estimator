@@ -171,6 +171,16 @@ void UKFEstimator::imu_orientationCallback(const base::Time &ts, const ::base::s
 	std::cout << "******** Init Attitude UKFEstimator *******\n";
 	/** Eliminate the Magnetic declination from the initial attitude quaternion  (because the initial quaternion from Xsens come from Magn) **/
 	BaseEstimator::CorrectMagneticDeclination (&attitude, _magnetic_declination.value(), _magnetic_declination_mode.value());
+
+        // apply offset angle
+        // create offset matrix
+        Matrix3d m;
+        m = AngleAxisd(0, Vector3d::UnitX())
+          * AngleAxisd(0, Vector3d::UnitY())
+          * AngleAxisd(_offset_angle, Vector3d::UnitZ());
+        // multiply quaternion
+        Eigen::Quaternion<double> correction(m);
+        attitude = attitude * correction;
 	
 	/** Set the initial attitude quaternion of the UKF **/
 	myukf->setAttitude (&attitude);

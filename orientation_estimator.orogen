@@ -241,6 +241,9 @@ task_context 'UKFEstimator' do
     property('dip_angle', 'double', 1.187696556).
 	doc 'Dip angle of Bremen in radians (equivalent to 68.05 degrees ).'    
 
+    property('offset_angle', 'double', 0).
+	doc 'offset to be substracted in yaw of the magnetometer initial angle. Useful for basin tests with fixed coordinate system. In radians.'    
+
     #******************************
     #**** Sensor Properties *****
     #******************************
