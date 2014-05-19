@@ -265,6 +265,17 @@ void UKFEstimator::imu_samplesCallback(const base::Time &ts, const ::base::sampl
 	/** Get attitude from the filter **/
 	qb_g = myukf->getAttitude();
 
+        // apply offset angle
+        // create offset matrix
+        Matrix3d m;
+        m = AngleAxisd(0, Vector3d::UnitX())
+          * AngleAxisd(0, Vector3d::UnitY())
+          * AngleAxisd(_offset_angle_runtime, Vector3d::UnitZ());
+        // multiply quaternion
+        Eigen::Quaternion<double> correction(m);
+        qb_g = qb_g * correction;
+
+
 	/** Copy to the rigid_body_state **/
 	rbs_b_g->orientation = (base::Orientation) qb_g;
 	

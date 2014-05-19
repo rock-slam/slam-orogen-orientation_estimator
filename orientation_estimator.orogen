@@ -244,6 +244,9 @@ task_context 'UKFEstimator' do
     property('offset_angle', 'double', 0).
 	doc 'offset to be substracted in yaw of the magnetometer initial angle. Useful for basin tests with fixed coordinate system. In radians.'    
 
+    property('offset_angle_runtime', 'double', 0).
+	doc 'offset to be substracted in yaw during runtime. In radians.'    
+
     #******************************
     #**** Sensor Properties *****
     #******************************
