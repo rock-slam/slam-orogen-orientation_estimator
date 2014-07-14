@@ -14,8 +14,13 @@
 namespace orientation_estimator
 {
 
-    /** Processing Configuration **/
-    struct Configuration
+    /** Magnetic declination mode **/
+    enum MAGNETIC_DECLINATION_MODE{EAST, WEST};
+    
+    enum FOG_TYPE{SINGLE_AXIS, MULTI_AXIS};
+
+    /** Filter Configuration **/
+    struct FilterConfiguration
     {
         std::string source_frame_name; //Output Frame name. Transformation: source -> target
 
@@ -26,15 +31,22 @@ namespace orientation_estimator
                                                     //some models as WGS-84 ellipsoid Earth.
                                                     //It will use inclinometers in case use_inclinometers_leveling is true
                                                     //and accelerometers otherwise.
-        bool use_inclinometers_leveling;//Some IMU provide inclinometers as fast and more accurate solution for initial leveling.
+        bool use_inclinometers; //Some IMU provide inclinometers as fast and more accurate solution for initial leveling.
                                 //Set True or False to use inclinometers values or not.
                                 //Note: Check if the IMU has inclinometers information.
 
-        bool use_magnetometers_heading;// Some IMUS provides Magnetic information.
-                                    // Set to true or false in case you want to correct heading with magnetometers
+        bool use_magnetometers; // Some IMUS provides Magnetic information.
+                                // Set to true or false in case you want to correct heading with magnetometers
+                                    
+	bool do_initial_north_seeking; 
+	
+	FOG_TYPE fog_type;
 
-        unsigned int init_leveling_samples;//Samples to compute the initial leveling of the imu in order to find the gravity vector.
-                                            //Set to zero in case zero attitude is desired as initial orientation from an arbitrary frame.
+	double initial_alignment_duration;  // Duration in seconds to compute the initial alignment of the imu frame to the local geographic coordinate frame.
+					    // This step involves the gravity vector (leveling) and finding the true North (gyrocompassing).
+					    //Set to zero in case zero attitude is desired as initial orientation from an arbitrary frame.
+						
+	double correction_frequency; //frequency of the correction step. Set to zero to correct at the same time than predict
     };
 
     //Data type for the Inertial measurement characteristic
@@ -66,6 +78,7 @@ namespace orientation_estimator
 
         /** Inclinometers Noise **/
         base::Vector3d incrw; //random walk for inclinometers (m/s/sqrt(s))
+	base::Vector3d ibiasins;//accelerometers bias instability (m/s^2)
         base::Vector3d incresolut;//minimum accelerometers resolution (m/s^2)
 
     };
@@ -77,8 +90,8 @@ namespace orientation_estimator
         double longitude;//Longitude in radians
         double altitude;//Altitude in meters
         double magnetic_declination;//Declination in radians
-        int magnetic_declination_mode;//The declination is positive when the magnetic north is east of true north
-                                    //1 is EAST, which means positive declination. 2 is WEST, which means negative declination.
+        orientation_estimator::MAGNETIC_DECLINATION_MODE magnetic_declination_mode;//The declination is positive when the magnetic north is East of true north
+										   //EAST means positive declination and WEST means negative declination.
         double dip_angle;//Dip angle in radians
     };
 

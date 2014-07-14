@@ -280,3 +280,80 @@ task_context 'UKFEstimator' do
 
 end
 
+
+task_context 'IKF' do
+    needs_configuration
+
+    #****************************
+    #**** Filter Properties *****
+    #****************************
+    property('filter_configuration', 'orientation_estimator/FilterConfiguration').
+	doc 'General configuration values to run the task'
+
+    #*********************************************
+    #**** Inertial Measurement Unit Properties ***
+    #*********************************************
+    property('inertial_noise_imu','orientation_estimator/InertialNoiseParameters').
+	doc 'Noise parameters for the internal sensors of the IMU.'
+	
+    property('inertial_noise_fog','orientation_estimator/InertialNoiseParameters').
+	doc 'Noise parameters for the internal sensors of the FOG.'
+
+    #****************************
+    #**** Adaptive Properties ***
+    #****************************
+    property('adaptive_config_acc_imu', 'orientation_estimator/AdaptiveAttitudeConfig').
+	doc 'Adaptive estimation of external IMU acceleration.'
+
+    property('adaptive_config_acc_fog', 'orientation_estimator/AdaptiveAttitudeConfig').
+	doc 'Adaptive estimation of external FOG acceleration.'
+
+    #******************************
+    #**** Location Properties *****
+    #******************************
+    property('location',"orientation_estimator/LocationConfiguration").
+	doc 'Localization properties related to the geographic place (i.e.: latitude, longitude, magnetic declination).'
+	
+    property('initial_heading', 'double').
+	doc 'Initial heading in radians. This is only used if imu_orientation is not connected and north seeking isnt activated.'
+
+    #******************************
+    #******* Input Ports **********
+    #******************************
+    input_port("imu_orientation", "/base/samples/RigidBodyState").
+      needs_reliable_connection.
+      doc 'IMU initial orientation in quaternion.'
+
+    input_port("fog_samples","/base/samples/IMUSensors").
+      needs_reliable_connection.
+      doc 'optic gyro angular velocity. (acc and gyros)'
+      
+    input_port("imu_samples", "/base/samples/IMUSensors").
+      needs_reliable_connection.
+      doc 'IMU data values (acc, gyros and magn).'
+
+    #******************************
+    #** Aggregator parameters ***** 
+    #******************************
+    stream_aligner() do
+	align_port("imu_orientation", 0.01)
+    	align_port("imu_samples", 0.01)
+	align_port("fog_samples", 0.01)
+	max_latency(0.1)
+    end
+
+    #******************************
+    #******* Output Ports *********
+    #******************************
+    output_port('attitude_b_g', '/base/samples/RigidBodyState');
+      doc 'timestamped state vector holding orientation and angular velocity with respect to the Earth fixed frame (geographic frame).' 
+
+    #******************************
+    #********** States ************
+    #******************************
+    runtime_states :INITIAL_NORTH_SEEKING, :INITIAL_ALIGNMENT
+    exception_states :NAN_ERROR, :ALIGNMENT_ERROR
+      
+    port_driven
+end
+
