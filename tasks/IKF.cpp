@@ -149,9 +149,14 @@ void IKF::imu_samplesCallback(const base::Time &ts, const ::base::samples::IMUSe
     /** Attitude filter **/
     if(!init_attitude && !_imu_orientation.connected())
     {
-	/** Set initial attitude **/
+	//** Do initial alignment **/
 	if (config.fog_type == SINGLE_AXIS || !_fog_samples.connected())
-	    initialAlignment(ts, imu_samples_sample.acc, imu_samples_sample.gyro);
+	{
+	    if (config.use_inclinometers)
+		initialAlignment(ts ,imu_samples_sample.mag, imu_samples_sample.gyro);
+	    else
+		initialAlignment(ts, imu_samples_sample.acc, imu_samples_sample.gyro);
+	}
     }
     
     if (init_attitude)
@@ -484,12 +489,10 @@ bool IKF::configureHook()
     }
 
     /** Initialize the filter, including the adaptive part **/
-    //TODO adapt to using only acc, gyr
     ikf_filter.Init(P_0, Ra, Rg, Rm, Ra2, Qbg, Qba, Qba2, gravity, location.dip_angle,
             adaptiveconfig_acc_imu.M1, adaptiveconfig_acc_imu.M2, adaptiveconfig_acc_imu.gamma,
             adaptiveconfig_acc_fog.M1, adaptiveconfig_acc_fog.M2, adaptiveconfig_acc_fog.gamma);
 
-    //TODO check if inital bias settings help
     base::Vector3d gbiasoff = inertialnoise_fog.gbiasoff;
     if(config.fog_type == SINGLE_AXIS)
     {
