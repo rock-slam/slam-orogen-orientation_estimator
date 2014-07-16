@@ -60,9 +60,6 @@ namespace orientation_estimator {
         /** Index for initializing attitude **/
         unsigned int initial_alignment_idx;
 	base::Time initial_alignment_ts;
-	
-	/** Initial north seeking **/
-	base::Time start_seeking;
 
         /**************************/
         /*** Property Variables ***/
@@ -83,9 +80,6 @@ namespace orientation_estimator {
 
         /** Location configuration variables **/
         LocationConfiguration location;
-	
-	/** Initial heading **/
-	base::Angle initial_heading;
 
         /**************************/
         /*** Internal Variables ***/
@@ -100,8 +94,6 @@ namespace orientation_estimator {
 	Eigen::Vector3d initial_alignment_acc;
 
         IKFFilter ikf_filter; /** The adaptive Indirect Kalman filter */
-	
-	Eigen::Vector3d acc_gyro;
 	
 	double acc_update_period;
 	

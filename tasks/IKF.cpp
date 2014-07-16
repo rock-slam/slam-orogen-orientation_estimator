@@ -32,31 +32,8 @@ void IKF::fog_samplesCallback(const base::Time &ts, const ::base::samples::IMUSe
     /** Attitude filter **/
     if (!init_attitude && !_imu_orientation.connected() && config.fog_type == MULTI_AXIS)
     {
-	/** Do initial north seeking **/
-	if(config.do_initial_north_seeking)
-	{
-	    //TODO throw this out
-	    new_state = INITIAL_NORTH_SEEKING;
-	    acc_gyro.x() += fog_samples_sample.gyro[0];
-	    acc_gyro.y() += fog_samples_sample.gyro[1];
-	    acc_gyro.z() += fog_samples_sample.gyro[2];
-	    
-	    if((base::Time::now() - start_seeking).toSeconds() >= config.initial_alignment_duration)
-	    {
-		initial_heading = base::Angle::fromRad(- atan2(acc_gyro.y(), acc_gyro.x()));
-		acc_gyro.setZero();
-		config.do_initial_north_seeking = false;
-	    }
-	}
-	
-	/** Set initial attitude **/
-	if(!config.do_initial_north_seeking)
-	{
-	    if (config.use_inclinometers)
-		initialAlignment(ts ,fog_samples_sample.mag, fog_samples_sample.gyro);
-	    else
-		initialAlignment(ts, fog_samples_sample.acc, fog_samples_sample.gyro);
-	}
+	/** Do initial alignment **/
+	initialAlignment(ts, fog_samples_sample.acc, fog_samples_sample.gyro);
     }
     
     if(init_attitude)
@@ -152,10 +129,7 @@ void IKF::imu_samplesCallback(const base::Time &ts, const ::base::samples::IMUSe
 	//** Do initial alignment **/
 	if (config.fog_type == SINGLE_AXIS || !_fog_samples.connected())
 	{
-	    if (config.use_inclinometers)
-		initialAlignment(ts ,imu_samples_sample.mag, imu_samples_sample.gyro);
-	    else
-		initialAlignment(ts, imu_samples_sample.acc, imu_samples_sample.gyro);
+	    initialAlignment(ts, imu_samples_sample.acc, imu_samples_sample.gyro);
 	}
     }
     
@@ -246,7 +220,7 @@ void IKF::initialAlignment(const base::Time &ts, const Eigen::Vector3d& acc_samp
     if ((ts - initial_alignment_ts).toSeconds() >= config.initial_alignment_duration)
     {
 	/** Set attitude to identity **/
-	Eigen::Quaterniond initial_attitude = Eigen::Quaterniond(Eigen::AngleAxisd(initial_heading.getRad(), Eigen::Vector3d::UnitZ()));
+	Eigen::Quaterniond initial_attitude = Eigen::Quaterniond(Eigen::AngleAxisd(_initial_heading.value(), Eigen::Vector3d::UnitZ()));
 
 	if (config.initial_alignment_duration > 0)
 	{
@@ -269,7 +243,7 @@ void IKF::initialAlignment(const base::Time &ts, const Eigen::Vector3d& acc_samp
 		    /** Compute the local horizontal plane **/
 		    euler[0] = (double) asin((double)meanacc[1]/ (double)meanacc.norm()); // Roll
 		    euler[1] = (double) -atan(meanacc[0]/meanacc[2]); //Pitch
-		    euler[2] = initial_heading.getRad(); //Yaw
+		    euler[2] = 0.0; //Yaw
 
 		    /** Set the attitude  **/
 		    initial_attitude = Eigen::Quaterniond(Eigen::AngleAxisd(euler[2], Eigen::Vector3d::UnitZ()) *
@@ -285,14 +259,14 @@ void IKF::initialAlignment(const base::Time &ts, const Eigen::Vector3d& acc_samp
 		    /** Gyro_ho = Tho_body * gyro_body **/
 		    Eigen::Vector3d transformed_meangyro = initial_attitude * meangyro;
 
-		    /** Determine the heading or azimuthal orientation **/
-		    // TODO check north computation
-		    if (transformed_meangyro[0] == 0.00)
-			euler[2] = 90.0*D2R - atan(transformed_meangyro[0]/transformed_meangyro[1]);
-			//initial_heading = base::Angle::fromRad(- atan2(acc_gyro.y(), acc_gyro.x()));
+		    /** Determine the initial heading **/
+		    if (transformed_meangyro.x() == 0.0 && transformed_meangyro.y() == 0.0)
+		    {
+			RTT::log(RTT::Warning) << "Couldn't estimate initial heading. Earth rotaion was estimated as zero." << RTT::endlog();
+			euler[2] = _initial_heading.value(); //Yaw
+		    }
 		    else
-			euler[2] = atan(transformed_meangyro[1]/transformed_meangyro[0]);
-
+			euler[2] = base::Angle::fromRad(-atan2(transformed_meangyro.y(), transformed_meangyro.x())).getRad();
 		    /** Set the attitude  **/
 		    initial_attitude = Eigen::Quaterniond(Eigen::AngleAxisd(euler[2], Eigen::Vector3d::UnitZ()) *
 							Eigen::AngleAxisd(euler[1], Eigen::Vector3d::UnitY()) *
@@ -310,10 +284,7 @@ void IKF::initialAlignment(const base::Time &ts, const Eigen::Vector3d& acc_samp
 		    BaseEstimator::SubstractEarthRotation(&meangyro, &initial_attitude, location.latitude);
 		    meanacc = meanacc - initial_attitude.inverse() * ikf_filter.getGravity();
 
-		    if (config.use_inclinometers)
-			ikf_filter.setInitBias (meangyro, Eigen::Matrix<double, 3, 1>::Zero(), meanacc);
-		    else
-			ikf_filter.setInitBias (meangyro, meanacc, Eigen::Matrix<double, 3, 1>::Zero());
+		    ikf_filter.setInitBias (meangyro, meanacc, Eigen::Matrix<double, 3, 1>::Zero());
 
 		    #ifdef DEBUG_PRINTS
 		    std::cout<< "******** Initial Bias Offset *******"<<"\n";
@@ -529,11 +500,6 @@ bool IKF::configureHook()
     acca_imu_start.microseconds = 0;
     acca_fog_start.microseconds = 0;
     
-    /** North seeking **/
-    start_seeking = base::Time::now();
-    acc_gyro.setZero();
-    initial_heading = base::Angle::fromRad(_initial_heading.get());
-    
     /** Task states **/
     last_state = PRE_OPERATIONAL;
     new_state = RUNNING;
@@ -557,62 +523,45 @@ bool IKF::configureHook()
     #endif
     
     /** Info and Warnings about the Task **/
-    // TODO rewrite configuration warnings
-    if (_imu_orientation.connected())
+    if (_initial_orientation.connected())
     {
-	RTT::log(RTT::Info) << "IMU orientation is connected" << RTT::endlog();
+	RTT::log(RTT::Info) << "Initial orientation is connected." << RTT::endlog();
 	RTT::log(RTT::Info) << "Initial orientation used from the first sample."<< RTT::endlog();
     }
     else
     {
-	RTT::log(RTT::Info) << "IMU orientation is not connected." << RTT::endlog();
+	RTT::log(RTT::Info) << "Initial orientation is not connected." << RTT::endlog();
 
-	if(config.do_initial_north_seeking)
+	if(config.initial_alignment_duration > 0.0)
 	    RTT::log(RTT::Info) << "Seeking initial yaw by measuring the earth rotation."<< RTT::endlog();
 	else
 	    RTT::log(RTT::Info) << "Using initial_heading paramter as initial yaw."<< RTT::endlog();
 
-	if(config.use_inclinometers)
-	    RTT::log(RTT::Info) << "Find initial roll and pitch by filtering FOG's inclinometers."<< RTT::endlog();
-	else if(config.fog_type == MULTI_AXIS)
+	if(config.fog_type == MULTI_AXIS)
 	    RTT::log(RTT::Info) << "Find initial roll and pitch by filtering FOG's accelerometers."<< RTT::endlog();
     }
 
     if (_fog_samples.connected())
     {
 	RTT::log(RTT::Info) << "FOG is connected" << RTT::endlog();
-	
-	if(config.fog_type == SINGLE_AXIS && config.do_initial_north_seeking) 
-	{
-	    RTT::log(RTT::Warning) << "Can't do initial north seeking on a single axis FOG." << RTT::endlog();
-	    RTT::log(RTT::Warning) << "Potential malfunction on the task!!" << RTT::endlog();
-	}
-	if(config.fog_type == SINGLE_AXIS && config.use_inclinometers)
-	{
-	    RTT::log(RTT::Warning) << "Can't find initial roll and pitch orientation using a single axis FOG." << RTT::endlog();
-	    RTT::log(RTT::Warning) << "Potential malfunction on the task!!" << RTT::endlog();
-	}
     }
     else
     {
 	RTT::log(RTT::Warning) << "FOG NOT connected" << RTT::endlog();
-	if(config.do_initial_north_seeking || config.use_inclinometers)
-	    RTT::log(RTT::Warning) << "Potential malfunction on the task!!" << RTT::endlog();
-	else
-	    RTT::log(RTT::Info) << "Orientation will be calculated from the IMU samples." << RTT::endlog();
+	RTT::log(RTT::Info) << "Orientation will be calculated from the IMU samples." << RTT::endlog();
     }
 
     if (_imu_samples.connected())
     {
-	RTT::log(RTT::Info) << "IMU samples is connected" << RTT::endlog();
+	RTT::log(RTT::Info) << "IMU is connected" << RTT::endlog();
 	
-	if(!config.use_inclinometers && config.fog_type == SINGLE_AXIS)
+	if(!_fog_samples.connected() || config.fog_type == SINGLE_AXIS)
 	    RTT::log(RTT::Info) << "Find initial roll and pitch by filtering IMU's accelerometers."<< RTT::endlog();
     }
     else
     {
-	RTT::log(RTT::Warning) << "IMU samples NOT connected." << RTT::endlog();
-	if(!config.use_inclinometers && config.fog_type == SINGLE_AXIS)
+	RTT::log(RTT::Warning) << "IMU NOT connected." << RTT::endlog();
+	if(config.fog_type == SINGLE_AXIS)
 	    RTT::log(RTT::Warning) << "Potential malfunction on the task!!" << RTT::endlog();
     }    
 
