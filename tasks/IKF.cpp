@@ -30,7 +30,7 @@ IKF::~IKF()
 void IKF::fog_samplesCallback(const base::Time &ts, const ::base::samples::IMUSensors &fog_samples_sample)
 {
     /** Attitude filter **/
-    if (!init_attitude && !_imu_orientation.connected() && config.fog_type == MULTI_AXIS)
+    if (!init_attitude && !_initial_orientation.connected() && config.fog_type == MULTI_AXIS)
     {
 	/** Do initial alignment **/
 	initialAlignment(ts, fog_samples_sample.acc, fog_samples_sample.gyro);
@@ -95,13 +95,12 @@ void IKF::fog_samplesCallback(const base::Time &ts, const ::base::samples::IMUSe
     }
 }
 
-void IKF::imu_orientationCallback(const base::Time &ts, const ::base::samples::RigidBodyState &imu_orientation_sample)
+void IKF::initial_orientationCallback(const base::Time &ts, const ::base::samples::RigidBodyState &initial_orientation_sample)
 {
     if (!init_attitude)
     {
-	Eigen::Quaternion <double> attitude (imu_orientation_sample.orientation.w(), imu_orientation_sample.orientation.x(),
-	imu_orientation_sample.orientation.y(), imu_orientation_sample.orientation.z());
-	Eigen::Matrix <double, NUMAXIS, 1> euler;
+	Eigen::Quaterniond attitude = initial_orientation_sample.orientation;
+	Eigen::Vector3d euler = base::getEuler(attitude);
 	
 	std::cout << "******** Init Attitude IKFEstimator *******\n";
 	/** Eliminate the Magnetic declination from the initial attitude quaternion **/
@@ -109,14 +108,10 @@ void IKF::imu_orientationCallback(const base::Time &ts, const ::base::samples::R
 	
 	/** Set the initial attitude quaternion of the IKF **/
 	ikf_filter.setAttitude (attitude);
-	init_attitude = true;    
-
-	euler[2] = base::getEuler(attitude)[0];//YAW
-	euler[1] = base::getEuler(attitude)[1];//PITCH
-	euler[0] = base::getEuler(attitude)[2];//ROLL
+	init_attitude = true;
 	
 	std::cout << "Orientation (Quaternion): "<< attitude.w()<<","<<attitude.x()<<","<<attitude.y()<<","<<attitude.z()<<"\n";
-	std::cout << "(Roll, Pitch, Yaw)\n"<< base::Angle::rad2Deg(euler.x()) << "," << base::Angle::rad2Deg(euler.y()) << "," << base::Angle::rad2Deg(euler.z()) << "\n";
+	std::cout << "(Roll, Pitch, Yaw)\n"<< base::Angle::rad2Deg(euler.z()) << "," << base::Angle::rad2Deg(euler.y()) << "," << base::Angle::rad2Deg(euler.x()) << "\n";
 	std::cout << "**********************\n";
     }
 }
@@ -124,7 +119,7 @@ void IKF::imu_orientationCallback(const base::Time &ts, const ::base::samples::R
 void IKF::imu_samplesCallback(const base::Time &ts, const ::base::samples::IMUSensors &imu_samples_sample)
 {
     /** Attitude filter **/
-    if(!init_attitude && !_imu_orientation.connected())
+    if(!init_attitude && !_initial_orientation.connected())
     {
 	//** Do initial alignment **/
 	if (config.fog_type == SINGLE_AXIS || !_fog_samples.connected())

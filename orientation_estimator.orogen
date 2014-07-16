@@ -320,25 +320,25 @@ task_context 'IKF' do
     #******************************
     #******* Input Ports **********
     #******************************
-    input_port("imu_orientation", "/base/samples/RigidBodyState").
+    input_port("imu_samples", "/base/samples/IMUSensors").
       needs_reliable_connection.
-      doc 'IMU initial orientation in quaternion.'
-
+      doc 'IMU data values (acc, gyros and magn).'
+      
     input_port("fog_samples","/base/samples/IMUSensors").
       needs_reliable_connection.
       doc 'optic gyro angular velocity. (acc and gyros)'
       
-    input_port("imu_samples", "/base/samples/IMUSensors").
+    input_port("initial_orientation", "/base/samples/RigidBodyState").
       needs_reliable_connection.
-      doc 'IMU data values (acc, gyros and magn).'
+      doc 'initial orientation. It is not nesesary to use this port.'
 
     #******************************
     #** Aggregator parameters ***** 
     #******************************
     stream_aligner() do
-	align_port("imu_orientation", 0.01)
     	align_port("imu_samples", 0.01)
 	align_port("fog_samples", 0.01)
+	align_port("initial_orientation", 0.01)
 	max_latency(0.1)
     end
 
