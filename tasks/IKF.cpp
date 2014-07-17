@@ -62,20 +62,20 @@ void IKF::fog_samplesCallback(const base::Time &ts, const ::base::samples::IMUSe
 	    if(config.fog_type == MULTI_AXIS)
 	    {
 		/** Filter accelerometer samples **/
+		acc_fog_sum += fog_samples_sample.acc;
 		// TODO Use a better filter than a mean filter
-		acca_fog += fog_samples_sample.acc;
-		acca_fog_samples++;
-		if(acca_fog_start.isNull())
-		    acca_fog_start = ts;
-		else if(acca_fog_samples >= 1 && (ts - acca_fog_start).toSeconds() > (1.0/config.correction_frequency))
+		fog_samples++;
+		if(fog_start.isNull())
+		    fog_start = ts;
+		else if(fog_samples >= 1 && (ts - fog_start).toSeconds() > (1.0/config.correction_frequency))
 		{
 		    base::Vector3d prev_euler = base::getEuler(ikf_filter.getAttitude());
 		    
 		    /** Update/Correction FOG accelerometers **/
-		    acca_fog /= (double)acca_fog_samples;
+		    Eigen::Vector3d acc_fog_mean = acc_fog_sum / (double)fog_samples;
 		    Eigen::Matrix <double,3,1> aux; 
 		    aux.setZero();
-		    ikf_filter.update(aux, false, acca_fog, true, aux, false);
+		    ikf_filter.update(aux, false, acc_fog_mean, true, aux, false);
 		    
 		    /** Exclude yaw angle from correction **/
 		    base::Vector3d corrected_euler = base::getEuler(ikf_filter.getAttitude());
@@ -84,9 +84,9 @@ void IKF::fog_samplesCallback(const base::Time &ts, const ::base::samples::IMUSe
 							    Eigen::AngleAxisd(corrected_euler[2], Eigen::Vector3d::UnitX());
 		    ikf_filter.setAttitude(corrected_attitide);
 		
-		    acca_fog.setZero();
-		    acca_fog_start.microseconds = 0;
-		    acca_fog_samples = 0;
+		    acc_fog_sum.setZero();
+		    fog_start.microseconds = 0;
+		    fog_samples = 0;
 		}
 	    }
 	}
@@ -156,37 +156,45 @@ void IKF::imu_samplesCallback(const base::Time &ts, const ::base::samples::IMUSe
 	    /** Predict **/
 	    ikf_filter.predict(gyro_reading, delta_t);
 	    
-	    /** Update/Correction magnetometers **/
-	    Eigen::Matrix <double,3,1> aux; 
-	    aux.setZero();
-	    //TODO maybe exclude rotation around x and y from magnetometer correction
+	    /** Filter magnetometer samples **/
 	    if(config.use_magnetometers)
-		ikf_filter.update(aux, false, aux, false, imu_samples_sample.mag, true);
+		mag_imu_sum += imu_samples_sample.mag;
 
 	    /** Filter accelerometer samples **/
+	    acc_imu_sum += imu_samples_sample.acc;
 	    // TODO Use a better filter than a mean filter
-	    acca_imu += imu_samples_sample.acc;
-	    acca_imu_samples++;
-	    if(acca_imu_start.isNull())
-		acca_imu_start = ts;
-	    else if(acca_imu_samples >= 1 && (ts - acca_imu_start).toSeconds() > (1.0/config.correction_frequency))
+	    imu_samples++;
+	    if(imu_start.isNull())
+		imu_start = ts;
+	    else if(imu_samples >= 1 && (ts - imu_start).toSeconds() > (1.0/config.correction_frequency))
 	    {
+		Eigen::Matrix <double,3,1> aux; 
+		aux.setZero();
 		base::Vector3d prev_euler = base::getEuler(ikf_filter.getAttitude());
 		
 		/** Update/Correction IMU accelerometers **/
-		acca_imu /= (double)acca_imu_samples;
-		ikf_filter.update(acca_imu, true, aux, false, aux, false);
+		Eigen::Vector3d acc_imu_mean = acc_imu_sum / (double)imu_samples;
+		ikf_filter.update(acc_imu_mean, true, aux, false, aux, false);
 
-		/** Exclude yaw angle from correction **/
+		/** Exclude yaw angle from accelerometers correction step **/
 		base::Vector3d corrected_euler = base::getEuler(ikf_filter.getAttitude());
 		Eigen::Quaterniond corrected_attitide = Eigen::AngleAxisd(prev_euler[0], Eigen::Vector3d::UnitZ()) * 
 							Eigen::AngleAxisd(corrected_euler[1], Eigen::Vector3d::UnitY()) *
 							Eigen::AngleAxisd(corrected_euler[2], Eigen::Vector3d::UnitX());
 		ikf_filter.setAttitude(corrected_attitide);
+		
+		/** Update/Correction IMU magnetometers **/
+		if(config.use_magnetometers)
+		{
+		    Eigen::Vector3d mag_imu_mean = mag_imu_sum / (double)imu_samples;
+		    ikf_filter.update(aux, false, aux, false, mag_imu_mean, true);
+		}
 
-		acca_imu.setZero();
-		acca_imu_start.microseconds = 0;
-		acca_imu_samples = 0;
+		/** Reset counter and accumulated values **/
+		acc_imu_sum.setZero();
+		mag_imu_sum.setZero();
+		imu_start.microseconds = 0;
+		imu_samples = 0;
 	    }
 	}
 	
@@ -259,7 +267,7 @@ void IKF::initialAlignment(const base::Time &ts,  const base::samples::IMUSensor
 		{
 		    /** use imu accelerometers as reference, if imu is connected **/
 		    Eigen::Vector3d meanacc = initial_alignment_imu.acc;
-		    if(true || initial_imu_samples == 0)
+		    if(initial_imu_samples == 0)
 			meanacc = initial_alignment_fog.acc;
 
 		    /** Override the gravity model value with the sensed from the sensors **/
@@ -538,12 +546,13 @@ bool IKF::configureHook()
     
     prev_ts.microseconds = 0;
     
-    acca_imu.setZero();
-    acca_fog.setZero();
-    acca_imu_samples = 0;
-    acca_fog_samples = 0;
-    acca_imu_start.microseconds = 0;
-    acca_fog_start.microseconds = 0;
+    acc_imu_sum.setZero();
+    acc_fog_sum.setZero();
+    mag_imu_sum.setZero();
+    imu_samples = 0;
+    fog_samples = 0;
+    imu_start.microseconds = 0;
+    fog_start.microseconds = 0;
     
     /** Task states **/
     last_state = PRE_OPERATIONAL;

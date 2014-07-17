@@ -106,12 +106,13 @@ namespace orientation_estimator {
 	
 	double max_time_delta;
 	
-	Eigen::Vector3d acca_imu;
-	Eigen::Vector3d acca_fog;
-	unsigned acca_imu_samples;
-	unsigned acca_fog_samples;
-	base::Time acca_imu_start;
-	base::Time acca_fog_start;
+	Eigen::Vector3d acc_imu_sum;
+	Eigen::Vector3d acc_fog_sum;
+	Eigen::Vector3d mag_imu_sum;
+	unsigned imu_samples;
+	unsigned fog_samples;
+	base::Time imu_start;
+	base::Time fog_start;
 	
 	Eigen::Matrix3d gyro_measurement_noise;
 	
