@@ -7,7 +7,7 @@
 
 #include <quater_ikf/Ikf.hpp>
 
-#define DEBUG_PRINTS 1
+//#define DEBUG_PRINTS 1
 
 namespace orientation_estimator {
     
@@ -27,6 +27,12 @@ namespace orientation_estimator {
     {
 	IKFSTATEVECTORSIZE = IKFFilter::IKFSTATEVECTORSIZE,
 	NUMAXIS = 3
+    };
+    
+    enum SensorType
+    {
+	IMU,
+	FOG
     };
 
     static const double GRAVITY_MARGIN = 0.3; /** Accepted error for the gravity value in [m/s^2] **/
@@ -58,7 +64,8 @@ namespace orientation_estimator {
         bool init_attitude;
 
         /** Index for initializing attitude **/
-        unsigned int initial_alignment_idx;
+	unsigned int initial_imu_samples;
+	unsigned int initial_fog_samples;
 	base::Time initial_alignment_ts;
 
         /**************************/
@@ -89,9 +96,9 @@ namespace orientation_estimator {
 	
 	Eigen::Vector3d gyro_reading;
 
-        /** Initial values of Accelerometers/Inclinometers for Pitch and Roll calculation */
-	Eigen::Vector3d initial_alignment_gyro;
-	Eigen::Vector3d initial_alignment_acc;
+        /** Accumulated measurement for attitude calculation */
+	base::samples::IMUSensors initial_alignment_imu;
+	base::samples::IMUSensors initial_alignment_fog;
 
         IKFFilter ikf_filter; /** The adaptive Indirect Kalman filter */
 	
@@ -128,7 +135,7 @@ namespace orientation_estimator {
 	
 	void writeOutput();
 	
-	void initialAlignment(const base::Time &ts, const Eigen::Vector3d& acc_sample, const Eigen::Vector3d& gyro_sample);
+	void initialAlignment(const base::Time &ts, const base::samples::IMUSensors &imu_sample, SensorType type);
 
     public:
         /** TaskContext constructor for IKF

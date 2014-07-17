@@ -352,7 +352,7 @@ task_context 'IKF' do
     #********** States ************
     #******************************
     runtime_states :INITIAL_NORTH_SEEKING, :INITIAL_ALIGNMENT
-    exception_states :NAN_ERROR, :ALIGNMENT_ERROR
+    exception_states :NAN_ERROR, :ALIGNMENT_ERROR, :CONFIGURATION_ERROR
       
     port_driven
 end

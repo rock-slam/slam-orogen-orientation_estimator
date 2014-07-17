@@ -30,10 +30,10 @@ IKF::~IKF()
 void IKF::fog_samplesCallback(const base::Time &ts, const ::base::samples::IMUSensors &fog_samples_sample)
 {
     /** Attitude filter **/
-    if (!init_attitude && !_initial_orientation.connected() && config.fog_type == MULTI_AXIS)
+    if (!init_attitude && !_initial_orientation.connected())
     {
 	/** Do initial alignment **/
-	initialAlignment(ts, fog_samples_sample.acc, fog_samples_sample.gyro);
+	initialAlignment(ts, fog_samples_sample, FOG);
     }
     
     if(init_attitude)
@@ -122,10 +122,7 @@ void IKF::imu_samplesCallback(const base::Time &ts, const ::base::samples::IMUSe
     if(!init_attitude && !_initial_orientation.connected())
     {
 	//** Do initial alignment **/
-	if (config.fog_type == SINGLE_AXIS || !_fog_samples.connected())
-	{
-	    initialAlignment(ts, imu_samples_sample.acc, imu_samples_sample.gyro);
-	}
+	initialAlignment(ts, imu_samples_sample, IMU);
     }
     
     if (init_attitude)
@@ -197,19 +194,35 @@ void IKF::imu_samplesCallback(const base::Time &ts, const ::base::samples::IMUSe
     }
 }
 
-void IKF::initialAlignment(const base::Time &ts, const Eigen::Vector3d& acc_sample, const Eigen::Vector3d& gyro_sample)
+void IKF::initialAlignment(const base::Time &ts,  const base::samples::IMUSensors &imu_sample, SensorType type)
 {
     #ifdef DEBUG_PRINTS
-	std::cout<<"** [ORIENT_IKF] Initial Attitude["<<initial_alignment_idx<<"]\n";
+	std::cout<<"** [ORIENT_IKF] Initial Attitude[IMU: "<<initial_imu_samples<<", FOG: "<<initial_fog_samples<<"]\n";
     #endif
     new_state = INITIAL_ALIGNMENT;
     
     if(initial_alignment_ts.isNull())
 	initial_alignment_ts = ts;
 
-    initial_alignment_acc += acc_sample;
-    initial_alignment_gyro += gyro_sample;
-    initial_alignment_idx++;
+    if(type == IMU)
+    {
+	initial_alignment_imu.acc += imu_sample.acc;
+	initial_alignment_imu.gyro += imu_sample.gyro;
+	initial_alignment_imu.mag += imu_sample.mag;
+	initial_imu_samples++;
+    }
+    else if(type == FOG)
+    {
+	initial_alignment_fog.acc += imu_sample.acc;
+	initial_alignment_fog.gyro += imu_sample.gyro;
+	initial_alignment_fog.mag += imu_sample.mag;
+	initial_fog_samples++;
+    }
+    else
+    {
+	RTT::log(RTT::Fatal)<<"[orientation_estimator] Selected sensor type is unknown."<<RTT::endlog();
+	return exception(CONFIGURATION_ERROR);
+    }
 
     /** Calculate the initial alignment to the local geographic frame **/
     if ((ts - initial_alignment_ts).toSeconds() >= config.initial_alignment_duration)
@@ -219,23 +232,42 @@ void IKF::initialAlignment(const base::Time &ts, const Eigen::Vector3d& acc_samp
 
 	if (config.initial_alignment_duration > 0)
 	{
-	    /** Acceleration **/
-	    Eigen::Vector3d meanacc = initial_alignment_acc / (double)initial_alignment_idx;
-
-	    /** Angular velocity **/
-	    Eigen::Vector3d meangyro = initial_alignment_gyro / (double)initial_alignment_idx;
-
-	    if ((base::isnotnan(meanacc)) && (base::isnotnan(meangyro)))
+	    if(initial_imu_samples == 0 && config.fog_type == SINGLE_AXIS)
 	    {
-		if (meanacc.norm() < (GRAVITY+GRAVITY_MARGIN))
+		RTT::log(RTT::Fatal)<<"[orientation_estimator] Can't do the inital alignment with a single axis FOG and no IMU."<<RTT::endlog();
+		return exception(CONFIGURATION_ERROR);
+	    }
+	    
+	    /** Compute mean values **/
+	    if(initial_imu_samples > 0)
+	    {
+		initial_alignment_imu.acc /= (double)initial_imu_samples;
+		initial_alignment_imu.gyro /= (double)initial_imu_samples;
+		initial_alignment_imu.mag /= (double)initial_imu_samples;
+	    }
+	    if(initial_fog_samples > 0)
+	    {
+		initial_alignment_fog.acc /= (double)initial_fog_samples;
+		initial_alignment_fog.gyro /= (double)initial_fog_samples;
+		initial_alignment_fog.mag /= (double)initial_fog_samples;
+	    }
+
+	    if ((base::isnotnan(initial_alignment_imu.acc)) && (base::isnotnan(initial_alignment_imu.gyro)))
+	    {
+		if ((initial_alignment_imu.acc.norm() < (GRAVITY+GRAVITY_MARGIN) && initial_alignment_imu.acc.norm() > (GRAVITY-GRAVITY_MARGIN)) || 
+		    (config.fog_type == MULTI_AXIS && initial_alignment_fog.acc.norm() < (GRAVITY+GRAVITY_MARGIN) && initial_alignment_fog.acc.norm() > (GRAVITY-GRAVITY_MARGIN)))
 		{
-		    Eigen::Matrix <double,3,1> euler;
+		    /** use imu accelerometers as reference, if imu is connected **/
+		    Eigen::Vector3d meanacc = initial_alignment_imu.acc;
+		    if(true || initial_imu_samples == 0)
+			meanacc = initial_alignment_fog.acc;
 
 		    /** Override the gravity model value with the sensed from the sensors **/
 		    if (config.use_samples_as_theoretical_gravity)
 			ikf_filter.setGravity(meanacc.norm());
 
 		    /** Compute the local horizontal plane **/
+		    Eigen::Vector3d euler;
 		    euler[0] = (double) asin((double)meanacc[1]/ (double)meanacc.norm()); // Roll
 		    euler[1] = (double) -atan(meanacc[0]/meanacc[2]); //Pitch
 		    euler[2] = 0.0; //Yaw
@@ -252,6 +284,12 @@ void IKF::initialAlignment(const base::Time &ts, const Eigen::Vector3d& acc_samp
 
 		    /** The angular velocity in the local horizontal plane **/
 		    /** Gyro_ho = Tho_body * gyro_body **/
+		    Eigen::Vector3d meangyro = initial_alignment_imu.gyro;
+		    if(initial_fog_samples > 0 && config.fog_type == SINGLE_AXIS)
+			meangyro[2] = initial_alignment_fog.gyro[2];
+		    if(initial_fog_samples > 0 && config.fog_type == MULTI_AXIS)
+			meangyro = initial_alignment_fog.gyro;
+		    
 		    Eigen::Vector3d transformed_meangyro = initial_attitude * meangyro;
 
 		    /** Determine the initial heading **/
@@ -276,10 +314,17 @@ void IKF::initialAlignment(const base::Time &ts, const Eigen::Vector3d& acc_samp
 		    #endif
 
 		    /** Compute the Initial Bias **/
-		    BaseEstimator::SubstractEarthRotation(&meangyro, &initial_attitude, location.latitude);
-		    meanacc = meanacc - initial_attitude.inverse() * ikf_filter.getGravity();
-
-		    ikf_filter.setInitBias (meangyro, meanacc, Eigen::Matrix<double, 3, 1>::Zero());
+		    Eigen::Vector3d gyro_bias = meangyro;
+		    BaseEstimator::SubstractEarthRotation(&gyro_bias, &initial_attitude, location.latitude);
+		    
+		    Eigen::Vector3d imu_acc_bias = ikf_filter.getAccBias();
+		    Eigen::Vector3d fog_acc_bias = ikf_filter.getInclBias();
+		    if(initial_imu_samples > 0)
+			imu_acc_bias = initial_alignment_imu.acc - initial_attitude.inverse() * ikf_filter.getGravity();
+		    if(initial_fog_samples > 0 && config.fog_type == MULTI_AXIS)
+			fog_acc_bias = initial_alignment_fog.acc - initial_attitude.inverse() * ikf_filter.getGravity();
+		    
+		    ikf_filter.setInitBias (gyro_bias, imu_acc_bias, fog_acc_bias);
 
 		    #ifdef DEBUG_PRINTS
 		    std::cout<< "******** Initial Bias Offset *******"<<"\n";
@@ -290,15 +335,15 @@ void IKF::initialAlignment(const base::Time &ts, const Eigen::Vector3d& acc_samp
 		}
 		else
 		{
-		    RTT::log(RTT::Fatal)<<"[STIM300] ERROR in Initial Alignment. Unable to compute reliable attitude."<<RTT::endlog();
-		    RTT::log(RTT::Fatal)<<"[STIM300] Computed "<< meanacc.norm() <<" [m/s^2] gravitational margin of "<<GRAVITY_MARGIN<<" [m/s^2] has been exceeded."<<RTT::endlog();
+		    RTT::log(RTT::Fatal)<<"[orientation_estimator] ERROR in Initial Alignment. Unable to compute reliable attitude."<<RTT::endlog();
+		    RTT::log(RTT::Fatal)<<"[orientation_estimator] Computed "<< initial_alignment_imu.acc.norm() <<" [m/s^2] gravitational margin of "<<GRAVITY_MARGIN<<" [m/s^2] has been exceeded."<<RTT::endlog();
 		    return exception(ALIGNMENT_ERROR);
 		}
 	    }
 	    else
 	    {
-		RTT::log(RTT::Fatal)<<"[STIM300] ERROR - NaN values in Initial Alignment."<<RTT::endlog();
-		RTT::log(RTT::Fatal)<<"[STIM300] This might be a configuration error or sensor fault."<<RTT::endlog();
+		RTT::log(RTT::Fatal)<<"[orientation_estimator] ERROR - NaN values in Initial Alignment."<<RTT::endlog();
+		RTT::log(RTT::Fatal)<<"[orientation_estimator] This might be a configuration error or sensor fault."<<RTT::endlog();
 		return exception(NAN_ERROR);
 	    }
 	}
@@ -472,11 +517,16 @@ bool IKF::configureHook()
     ikf_filter.setInitBias(gbiasoff, inertialnoise_imu.abiasoff, inertialnoise_fog.abiasoff);
 
     /** Allignment configuration **/
-    initial_alignment_gyro.setZero();
-    initial_alignment_acc.setZero();
+    initial_alignment_imu.acc.setZero();
+    initial_alignment_imu.gyro.setZero();
+    initial_alignment_imu.mag.setZero();
+    initial_alignment_fog.acc.setZero();
+    initial_alignment_fog.gyro.setZero();
+    initial_alignment_fog.mag.setZero();
 
-    /** Set the index to Zero **/
-    initial_alignment_idx = 0;
+    /** Set the samples count to Zero **/
+    initial_imu_samples = 0;
+    initial_fog_samples = 0;
     initial_alignment_ts.microseconds = 0;
     
     /** Initial attitude **/
