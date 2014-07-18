@@ -335,7 +335,10 @@ task_context 'IKF' do
     #******************************
     #** Aggregator parameters ***** 
     #******************************
-    stream_aligner() do
+    transformer do
+        transformation("imu", "body")
+        transformation("fog", "body")
+    
     	align_port("imu_samples", 0.01)
 	align_port("fog_samples", 0.01)
 	align_port("initial_orientation", 0.01)
@@ -351,7 +354,7 @@ task_context 'IKF' do
     #******************************
     #********** States ************
     #******************************
-    runtime_states :INITIAL_NORTH_SEEKING, :INITIAL_ALIGNMENT
+    runtime_states :INITIAL_NORTH_SEEKING, :INITIAL_ALIGNMENT, :MISSING_TRANSFORMATION
     exception_states :NAN_ERROR, :ALIGNMENT_ERROR, :CONFIGURATION_ERROR
       
     port_driven

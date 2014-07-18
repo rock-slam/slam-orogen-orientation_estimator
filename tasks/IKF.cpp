@@ -27,13 +27,29 @@ IKF::~IKF()
 {
 }
 
-void IKF::fog_samplesCallback(const base::Time &ts, const ::base::samples::IMUSensors &fog_samples_sample)
+void IKF::fog_samplesTransformerCallback(const base::Time &ts, const ::base::samples::IMUSensors &fog_samples_sample)
 {
+    /** Receive fog to body transformation **/
+    Eigen::Affine3d fog2body;
+    if (!_fog2body.get(ts, fog2body))
+    {
+        RTT::log(RTT::Error) << "skip, have no fog2body transformation sample!" << RTT::endlog();
+        new_state = MISSING_TRANSFORMATION;
+        return;
+    }
+    
+    /** Rotate measurements to body frame **/
+    base::samples::IMUSensors transformed_fog_samples;
+    transformed_fog_samples.time = fog_samples_sample.time;
+    transformed_fog_samples.acc = fog2body.rotation() * fog_samples_sample.acc;
+    transformed_fog_samples.gyro = fog2body.rotation() * fog_samples_sample.gyro;
+    transformed_fog_samples.mag = fog2body.rotation() * fog_samples_sample.mag;
+    
     /** Attitude filter **/
     if (!init_attitude && !_initial_orientation.connected())
     {
 	/** Do initial alignment **/
-	initialAlignment(ts, fog_samples_sample, FOG);
+	initialAlignment(ts, transformed_fog_samples, FOG);
     }
     
     if(init_attitude)
@@ -46,7 +62,7 @@ void IKF::fog_samplesCallback(const base::Time &ts, const ::base::samples::IMUSe
 		delta_t = max_time_delta;
 	    
 	    /** Eliminate Earth rotation **/
-	    Eigen::Vector3d fog_gyro = fog_samples_sample.gyro;
+	    Eigen::Vector3d fog_gyro = transformed_fog_samples.gyro;
 	    Eigen::Quaterniond q_body2world = ikf_filter.getAttitude();
 	    BaseEstimator::SubstractEarthRotation(&fog_gyro, &q_body2world, location.latitude);
 	    
@@ -62,7 +78,7 @@ void IKF::fog_samplesCallback(const base::Time &ts, const ::base::samples::IMUSe
 	    if(config.fog_type == MULTI_AXIS)
 	    {
 		/** Filter accelerometer samples **/
-		acc_fog_sum += fog_samples_sample.acc;
+		acc_fog_sum += transformed_fog_samples.acc;
 		// TODO Use a better filter than a mean filter
 		fog_samples++;
 		if(fog_start.isNull())
@@ -95,7 +111,7 @@ void IKF::fog_samplesCallback(const base::Time &ts, const ::base::samples::IMUSe
     }
 }
 
-void IKF::initial_orientationCallback(const base::Time &ts, const ::base::samples::RigidBodyState &initial_orientation_sample)
+void IKF::initial_orientationTransformerCallback(const base::Time &ts, const ::base::samples::RigidBodyState &initial_orientation_sample)
 {
     if (!init_attitude)
     {
@@ -116,13 +132,29 @@ void IKF::initial_orientationCallback(const base::Time &ts, const ::base::sample
     }
 }
 
-void IKF::imu_samplesCallback(const base::Time &ts, const ::base::samples::IMUSensors &imu_samples_sample)
+void IKF::imu_samplesTransformerCallback(const base::Time &ts, const ::base::samples::IMUSensors &imu_samples_sample)
 {
+    /** Receive imu to body transformation **/
+    Eigen::Affine3d imu2body;
+    if (!_imu2body.get(ts, imu2body))
+    {
+        RTT::log(RTT::Error) << "skip, have no imu2body transformation sample!" << RTT::endlog();
+        new_state = MISSING_TRANSFORMATION;
+        return;
+    }
+    
+    /** Rotate measurements to body frame **/
+    base::samples::IMUSensors transformed_imu_samples;
+    transformed_imu_samples.time = imu_samples_sample.time;
+    transformed_imu_samples.acc = imu2body.rotation() * imu_samples_sample.acc;
+    transformed_imu_samples.gyro = imu2body.rotation() * imu_samples_sample.gyro;
+    transformed_imu_samples.mag = imu2body.rotation() * imu_samples_sample.mag;
+    
     /** Attitude filter **/
     if(!init_attitude && !_initial_orientation.connected())
     {
 	//** Do initial alignment **/
-	initialAlignment(ts, imu_samples_sample, IMU);
+	initialAlignment(ts, transformed_imu_samples, IMU);
     }
     
     if (init_attitude)
@@ -138,7 +170,7 @@ void IKF::imu_samplesCallback(const base::Time &ts, const ::base::samples::IMUSe
 	    if(config.fog_type == SINGLE_AXIS || !_fog_samples.connected())
 	    {
 		/** Eliminate Earth rotation **/
-		Eigen::Vector3d imu_gyro = imu_samples_sample.gyro;
+		Eigen::Vector3d imu_gyro = transformed_imu_samples.gyro;
 		Eigen::Quaterniond q_body2world = ikf_filter.getAttitude();
 		BaseEstimator::SubstractEarthRotation(&imu_gyro, &q_body2world, location.latitude);
 	    
@@ -158,10 +190,10 @@ void IKF::imu_samplesCallback(const base::Time &ts, const ::base::samples::IMUSe
 	    
 	    /** Filter magnetometer samples **/
 	    if(config.use_magnetometers)
-		mag_imu_sum += imu_samples_sample.mag;
+		mag_imu_sum += transformed_imu_samples.mag;
 
 	    /** Filter accelerometer samples **/
-	    acc_imu_sum += imu_samples_sample.acc;
+	    acc_imu_sum += transformed_imu_samples.acc;
 	    // TODO Use a better filter than a mean filter
 	    imu_samples++;
 	    if(imu_start.isNull())

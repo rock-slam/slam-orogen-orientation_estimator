@@ -128,11 +128,11 @@ namespace orientation_estimator {
 	
     protected:
 
-        virtual void fog_samplesCallback(const base::Time &ts, const ::base::samples::IMUSensors &fog_samples_sample);
+        virtual void fog_samplesTransformerCallback(const base::Time &ts, const ::base::samples::IMUSensors &fog_samples_sample);
 
-        virtual void initial_orientationCallback(const base::Time &ts, const ::base::samples::RigidBodyState &initial_orientation_sample);
+        virtual void initial_orientationTransformerCallback(const base::Time &ts, const ::base::samples::RigidBodyState &initial_orientation_sample);
 
-        virtual void imu_samplesCallback(const base::Time &ts, const ::base::samples::IMUSensors &imu_samples_sample);
+        virtual void imu_samplesTransformerCallback(const base::Time &ts, const ::base::samples::IMUSensors &imu_samples_sample);
 	
 	void writeOutput();
 	
