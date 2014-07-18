@@ -63,8 +63,11 @@ void IKF::fog_samplesTransformerCallback(const base::Time &ts, const ::base::sam
 	    
 	    /** Eliminate Earth rotation **/
 	    Eigen::Vector3d fog_gyro = transformed_fog_samples.gyro;
-	    Eigen::Quaterniond q_body2world = ikf_filter.getAttitude();
-	    BaseEstimator::SubstractEarthRotation(&fog_gyro, &q_body2world, location.latitude);
+	    if(config.substract_earth_rotation)
+	    {
+		Eigen::Quaterniond q_body2world = ikf_filter.getAttitude();
+		BaseEstimator::SubstractEarthRotation(&fog_gyro, &q_body2world, location.latitude);
+	    }
 	    
 	    /** Augment gyro reading **/
 	    if(config.fog_type == SINGLE_AXIS)
@@ -171,8 +174,11 @@ void IKF::imu_samplesTransformerCallback(const base::Time &ts, const ::base::sam
 	    {
 		/** Eliminate Earth rotation **/
 		Eigen::Vector3d imu_gyro = transformed_imu_samples.gyro;
-		Eigen::Quaterniond q_body2world = ikf_filter.getAttitude();
-		BaseEstimator::SubstractEarthRotation(&imu_gyro, &q_body2world, location.latitude);
+		if(config.substract_earth_rotation)
+		{
+		    Eigen::Quaterniond q_body2world = ikf_filter.getAttitude();
+		    BaseEstimator::SubstractEarthRotation(&imu_gyro, &q_body2world, location.latitude);
+		}
 	    
 		if(config.fog_type == SINGLE_AXIS)
 		{
@@ -355,7 +361,8 @@ void IKF::initialAlignment(const base::Time &ts,  const base::samples::IMUSensor
 
 		    /** Compute the Initial Bias **/
 		    Eigen::Vector3d gyro_bias = meangyro;
-		    BaseEstimator::SubstractEarthRotation(&gyro_bias, &initial_attitude, location.latitude);
+		    if(config.substract_earth_rotation)
+			BaseEstimator::SubstractEarthRotation(&gyro_bias, &initial_attitude, location.latitude);
 		    
 		    Eigen::Vector3d imu_acc_bias = ikf_filter.getAccBias();
 		    Eigen::Vector3d fog_acc_bias = ikf_filter.getInclBias();

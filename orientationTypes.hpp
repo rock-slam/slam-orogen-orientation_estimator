@@ -37,6 +37,10 @@ namespace orientation_estimator
 	
 	FOG_TYPE fog_type;
 
+	bool substract_earth_rotation; // Substract earth rotation from gyroscope readings. 
+				       // This should be done if the heading is aligned to the real north to reduce the error measurement,
+				       // otherwise it can increase the error.
+	
 	double initial_alignment_duration;  // Duration in seconds to compute the initial alignment of the imu frame to the local geographic coordinate frame.
 					    // This step involves the gravity vector (leveling) and finding the true North (gyrocompassing).
 					    //Set to zero in case zero attitude is desired as initial orientation from an arbitrary frame.
