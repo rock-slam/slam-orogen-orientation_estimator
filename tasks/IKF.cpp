@@ -339,13 +339,42 @@ void IKF::initialAlignment(const base::Time &ts,  const base::samples::IMUSensor
 		    Eigen::Vector3d transformed_meangyro = initial_attitude * meangyro;
 
 		    /** Determine the initial heading **/
-		    if (transformed_meangyro.x() == 0.0 && transformed_meangyro.y() == 0.0)
+		    if(config.initial_heading_source == MAGNETOMETERS)
 		    {
-			RTT::log(RTT::Warning) << "Couldn't estimate initial heading. Earth rotaion was estimated as zero." << RTT::endlog();
-			euler[2] = _initial_heading.value(); //Yaw
+			if(initial_imu_samples > 0)
+			{
+			    Eigen::Vector3d transformed_meanmag = initial_attitude * initial_alignment_imu.mag;
+			    euler[2] = base::Angle::fromRad(-atan2(transformed_meanmag.y(), transformed_meanmag.x())).getRad();
+			}
+			else
+			{
+			    RTT::log(RTT::Warning) << "Don't have any magnetometer samples." << RTT::endlog();
+			    RTT::log(RTT::Warning) << "Falling back to initial heading from parameter." << RTT::endlog();
+			    euler[2] = _initial_heading.value();
+			}
+			
+		    }
+		    else if(config.initial_heading_source == ESTIMATE_FROM_EARTH_ROTATION)
+		    {
+			if (transformed_meangyro.x() == 0.0 && transformed_meangyro.y() == 0.0)
+			{
+			    RTT::log(RTT::Warning) << "Couldn't estimate initial heading. Earth rotaion was estimated as zero." << RTT::endlog();
+			    RTT::log(RTT::Warning) << "Falling back to initial heading from parameter." << RTT::endlog();
+			    euler[2] = _initial_heading.value();
+			}
+			else
+			    euler[2] = base::Angle::fromRad(-atan2(transformed_meangyro.y(), transformed_meangyro.x())).getRad();
+		    }
+		    else if(config.initial_heading_source == INITIAL_HEADING_PARAMETER)
+		    {
+			euler[2] = _initial_heading.value();
 		    }
 		    else
-			euler[2] = base::Angle::fromRad(-atan2(transformed_meangyro.y(), transformed_meangyro.x())).getRad();
+		    {
+			RTT::log(RTT::Fatal)<<"[orientation_estimator] Selected initial heading source is unknown."<<RTT::endlog();
+			return exception(CONFIGURATION_ERROR);
+		    }
+		    
 		    /** Set the attitude  **/
 		    initial_attitude = Eigen::Quaterniond(Eigen::AngleAxisd(euler[2], Eigen::Vector3d::UnitZ()) *
 							Eigen::AngleAxisd(euler[1], Eigen::Vector3d::UnitY()) *
@@ -393,6 +422,10 @@ void IKF::initialAlignment(const base::Time &ts,  const base::samples::IMUSensor
 		RTT::log(RTT::Fatal)<<"[orientation_estimator] This might be a configuration error or sensor fault."<<RTT::endlog();
 		return exception(NAN_ERROR);
 	    }
+	}
+	else
+	{
+	    RTT::log(RTT::Warning)<<"[orientation_estimator] Skipping inital alignment. Initial alignment duration was zero."<<RTT::endlog();
 	}
 	
 	ikf_filter.setAttitude(initial_attitude);
