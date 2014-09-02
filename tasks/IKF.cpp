@@ -38,12 +38,33 @@ void IKF::fog_samplesTransformerCallback(const base::Time &ts, const ::base::sam
         return;
     }
     
+    base::samples::IMUSensors transformed_fog_samples = fog_samples_sample;
+    
+    // check for NaN values
+    if(config.fog_type == MULTI_AXIS && !base::isnotnan(transformed_fog_samples.acc))
+    {
+	RTT::log(RTT::Fatal) << "ERROR: FOG accelerometer readings contains NaN values!" << RTT::endlog();
+	return exception(NAN_ERROR);
+    }
+    if(!base::isnotnan(transformed_fog_samples.gyro))
+    {
+	if(config.fog_type == SINGLE_AXIS && !base::isNaN<double>(transformed_fog_samples.gyro.z()))
+	{
+	    transformed_fog_samples.gyro.x() = 0.0;
+	    transformed_fog_samples.gyro.y() = 0.0;
+	}
+	else
+	{
+	    RTT::log(RTT::Fatal) << "ERROR: FOG gyroscope readings contains NaN values!" << RTT::endlog();
+	    return exception(NAN_ERROR);
+	}
+    }
+    
     /** Rotate measurements to body frame **/
-    base::samples::IMUSensors transformed_fog_samples;
-    transformed_fog_samples.time = fog_samples_sample.time;
-    transformed_fog_samples.acc = fog2body.rotation() * fog_samples_sample.acc;
-    transformed_fog_samples.gyro = fog2body.rotation() * fog_samples_sample.gyro;
-    transformed_fog_samples.mag = fog2body.rotation() * fog_samples_sample.mag;
+    //transformed_fog_samples.time = fog_samples_sample.time;
+    transformed_fog_samples.acc = fog2body.rotation() * transformed_fog_samples.acc;
+    transformed_fog_samples.gyro = fog2body.rotation() * transformed_fog_samples.gyro;
+    transformed_fog_samples.mag = fog2body.rotation() * transformed_fog_samples.mag;
     
     /** Attitude filter **/
     if (!init_attitude && !_initial_orientation.connected())
