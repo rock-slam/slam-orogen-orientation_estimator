@@ -56,15 +56,6 @@ using namespace orientation_estimator;
 BaseEstimator::BaseEstimator(std::string const& name)
     : BaseEstimatorBase(name)
 {
-
-  euler = new Eigen::Matrix <double,NUMAXIS,1>;
-  head_q = new Eigen::Quaternion <double>;
-  rbs_b_g = new base::samples::RigidBodyState();
-  rbs_b_g->invalidate();
-  oldeuler = new Eigen::Matrix <double, NUMAXIS, 1>;
-  
-  flag_fog_time  = false;
-  init_attitude = false;
 }
 
 /**
@@ -78,18 +69,6 @@ BaseEstimator::BaseEstimator(std::string const& name)
  */
 BaseEstimator::~BaseEstimator()
 {
-  /** Free filter object **/
-  delete euler;
-  euler = NULL;
-  
-  delete head_q;
-  head_q = NULL;
-  
-  delete oldeuler;
-  oldeuler = NULL;
-  
-  delete rbs_b_g;
-  rbs_b_g = NULL;
 }
 
 /**
@@ -403,6 +382,14 @@ bool BaseEstimator::CorrectMagneticDeclination(Eigen::Quaternion< double >* quat
 
 bool BaseEstimator::configureHook()
 {
+  euler = new Eigen::Matrix <double,NUMAXIS,1>;
+  head_q = new Eigen::Quaternion <double>;
+  rbs_b_g = new base::samples::RigidBodyState();
+  rbs_b_g->invalidate();
+  oldeuler = new Eigen::Matrix <double, NUMAXIS, 1>;
+  
+  flag_fog_time  = false;
+  init_attitude = false;
 
   /** Output port frames information */
   rbs_b_g->sourceFrame = "Body_Frame"; /** The body Frame in Source  */
@@ -451,5 +438,18 @@ void BaseEstimator::stopHook()
 void BaseEstimator::cleanupHook()
 {
     BaseEstimatorBase::cleanupHook();
+    
+    /** Free filter object **/
+    delete euler;
+    euler = NULL;
+
+    delete head_q;
+    head_q = NULL;
+
+    delete oldeuler;
+    oldeuler = NULL;
+
+    delete rbs_b_g;
+    rbs_b_g = NULL;
 }
 
