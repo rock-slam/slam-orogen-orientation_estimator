@@ -177,6 +177,15 @@ void BaseEstimator::imu_orientationCallback(const base::Time &ts, const ::base::
 	std::cout << "******** Init Attitude BaseEstimator *******\n";
 	/** Eliminate the Magnetic declination from the initial attitude quaternion **/
 	CorrectMagneticDeclination (&attitude, _magnetic_declination.value(), _magnetic_declination_mode.value());
+	
+	/** Set initial heading **/
+	if(_use_initial_heading.value())
+	{
+	    attitude = Eigen::Quaterniond(Eigen::AngleAxisd(base::getEuler(attitude)[2], Eigen::Vector3d::UnitX()) *
+					Eigen::AngleAxisd(base::getEuler(attitude)[1], Eigen::Vector3d::UnitY()) *
+					Eigen::AngleAxisd(_initial_heading.value(), Eigen::Vector3d::UnitZ()));
+	}
+	
 	(*head_q) = attitude;
 	init_attitude = true;
 	
