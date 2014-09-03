@@ -68,6 +68,12 @@ task_context 'BaseEstimator' do
 
     property "gbiasof", "/base/Vector3d"
 	doc "bias offset in static regimen for the Gyroscopes"
+	
+	
+    property('orientation_cov', '/base/Matrix3d').
+	doc 'override orientation covariance'
+    property('angular_velocity_cov', '/base/Matrix3d').
+	doc 'override angular velocity covariance'
     
 
     port_driven

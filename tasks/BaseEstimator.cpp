@@ -17,6 +17,7 @@
  */
 
 #include "BaseEstimator.hpp"
+#include <base/Eigen.hpp>
 
 /** WGS-84 ellipsoid constants (Nominal Gravity Model and Earth angular velocity) **/
 #ifndef Re
@@ -217,9 +218,15 @@ void BaseEstimator::imu_orientationCallback(const base::Time &ts, const ::base::
 	/** Out in the Outports  */
 	rbs_b_g->time = imu_orientation_sample.time; //base::Time::now(); /** Set the timestamp */
 	
-	/** Copy covariances */
-	rbs_b_g->cov_angular_velocity = imu_orientation_sample.cov_angular_velocity;
-	rbs_b_g->cov_orientation = imu_orientation_sample.cov_orientation;
+	/** Copy or override covariances */
+	if(base::isnotnan(_angular_velocity_cov.value()) && !_angular_velocity_cov.value().isZero())
+	    rbs_b_g->cov_angular_velocity = _angular_velocity_cov.value();
+	else
+	    rbs_b_g->cov_angular_velocity = imu_orientation_sample.cov_angular_velocity;
+	if(base::isnotnan(_orientation_cov.value()) && !_orientation_cov.value().isZero())
+	    rbs_b_g->cov_orientation = _orientation_cov.value();
+	else
+	    rbs_b_g->cov_orientation = imu_orientation_sample.cov_orientation;
 	
 	/** Write in the output port **/
 	_attitude_b_g.write((*rbs_b_g));
