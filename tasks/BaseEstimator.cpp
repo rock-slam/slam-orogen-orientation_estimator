@@ -191,7 +191,19 @@ void BaseEstimator::imu_orientationCallback(const base::Time &ts, const ::base::
 // 	std::cout << "**********************\n";
 
 	/** Write the Angular velocity (as the different between two orientations in radians)*/
-	rbs_b_g->angular_velocity = ((*euler) - (*oldeuler))/fog_dt;
+	double imu_dt = (imu_orientation_sample.time - rbs_b_g->time).toSeconds();
+	if(imu_dt > 0.0)
+	{
+	    Eigen::AngleAxisd angle_axis = Eigen::AngleAxisd(Eigen::AngleAxisd(fog_gyros[2], Eigen::Vector3d::UnitZ()) * 
+							    Eigen::AngleAxisd(((*euler)[1] - (*oldeuler)[1]) / imu_dt, Eigen::Vector3d::UnitY()) * 
+							    Eigen::AngleAxisd(((*euler)[0] - (*oldeuler)[0]) / imu_dt, Eigen::Vector3d::UnitX()));
+	    rbs_b_g->angular_velocity = angle_axis.angle() * angle_axis.axis();
+	}
+	else
+	{
+	    Eigen::AngleAxisd angle_axis = Eigen::AngleAxisd(Eigen::AngleAxisd(fog_gyros[2], Eigen::Vector3d::UnitZ()));
+	    rbs_b_g->angular_velocity = angle_axis.angle() * angle_axis.axis();
+	}
 	
 	/** Store the euler angle for the next iteration **/
 	(*oldeuler)= (*euler);
@@ -388,6 +400,7 @@ bool BaseEstimator::configureHook()
   rbs_b_g = new base::samples::RigidBodyState();
   rbs_b_g->invalidate();
   oldeuler = new Eigen::Matrix <double, NUMAXIS, 1>;
+  fog_gyros = Eigen::Matrix <double, NUMAXIS, 1>::Zero();
   
   flag_fog_time  = false;
   init_attitude = false;

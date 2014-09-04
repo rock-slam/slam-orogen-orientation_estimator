@@ -46,6 +46,7 @@ namespace orientation_estimator {
 	Eigen::Matrix <double, NUMAXIS, 1> *euler;
 	base::samples::RigidBodyState *rbs_b_g; /**< Output RigidBody State containin the orientation and angular velocity of the body */
 	Eigen::Matrix <double, NUMAXIS, 1> *oldeuler; /**< Euler angles for the velocity stimation */
+	Eigen::Matrix <double,NUMAXIS,1> fog_gyros; /**< Angular velocity for the FOG */ 
 	
 	
         virtual void fog_samplesCallback(const base::Time &ts, const ::base::samples::IMUSensors &fog_samples_sample);
