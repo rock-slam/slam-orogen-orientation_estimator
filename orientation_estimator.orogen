@@ -77,7 +77,7 @@ task_context 'BaseEstimator' do
     property('angular_velocity_cov', '/base/Matrix3d').
 	doc 'override angular velocity covariance, if it is not NaN or zero.'
 	
-    property('use_initial_heading', 'bool', true).
+    property('use_initial_heading', 'bool', false).
 	doc 'true if initial heading parameter should be used.'
     property('initial_heading', 'double', 0.0).
 	doc 'Initial heading in radians.'
