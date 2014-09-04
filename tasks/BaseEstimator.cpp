@@ -107,7 +107,8 @@ void BaseEstimator::fog_samplesCallback(const base::Time &ts, const ::base::samp
       fog_gyros = fog_samples_sample.gyro;
       
       /** Substract the Earth Rotation from the FOG output */
-      SubstractEarthRotation (&fog_gyros, head_q, _latitude.value());
+      if(_substract_earth_rotation.value())
+	SubstractEarthRotation (&fog_gyros, head_q, _latitude.value());
       
       /** Only in the Yaw (Z-axis) are the FOG angular velocity ) */
       fog_gyros[0] = 0.00;

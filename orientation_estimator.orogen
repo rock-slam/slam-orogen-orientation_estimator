@@ -69,18 +69,21 @@ task_context 'BaseEstimator' do
     property "gbiasof", "/base/Vector3d"
 	doc "bias offset in static regimen for the Gyroscopes"
 	
-	
+    #******************************
+    #**** Filter Properties *******
+    #******************************
     property('orientation_cov', '/base/Matrix3d').
-	doc 'override orientation covariance'
+	doc 'override orientation covariance, if it is not NaN or zero.'
     property('angular_velocity_cov', '/base/Matrix3d').
-	doc 'override angular velocity covariance'
-	
+	doc 'override angular velocity covariance, if it is not NaN or zero.'
 	
     property('use_initial_heading', 'bool', true).
 	doc 'true if initial heading parameter should be used.'
     property('initial_heading', 'double', 0.0).
 	doc 'Initial heading in radians.'
-    
+	
+    property('substract_earth_rotation', 'bool', true).
+	doc 'true if the earth rotation should be substracted.'
 
     port_driven
     
