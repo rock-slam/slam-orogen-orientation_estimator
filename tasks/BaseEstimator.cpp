@@ -88,9 +88,6 @@ BaseEstimator::~BaseEstimator()
  */
 void BaseEstimator::fog_samplesCallback(const base::Time &ts, const ::base::samples::IMUSensors &fog_samples_sample)
 {
-  
-  Eigen::Matrix <double,NUMAXIS,1> fog_gyros; /**< Angular velocity for the FOG */ 
-  
   if (init_attitude == true)
   {
     if (flag_fog_time == false)
@@ -201,8 +198,7 @@ void BaseEstimator::imu_orientationCallback(const base::Time &ts, const ::base::
 	}
 	else
 	{
-	    Eigen::AngleAxisd angle_axis = Eigen::AngleAxisd(Eigen::AngleAxisd(fog_gyros[2], Eigen::Vector3d::UnitZ()));
-	    rbs_b_g->angular_velocity = angle_axis.angle() * angle_axis.axis();
+	    rbs_b_g->angular_velocity = fog_gyros[2] * Eigen::Vector3d::UnitZ();
 	}
 	
 	/** Store the euler angle for the next iteration **/
