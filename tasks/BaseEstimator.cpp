@@ -232,6 +232,15 @@ void BaseEstimator::imu_orientationCallback(const base::Time &ts, const ::base::
    return;
 }
 
+bool BaseEstimator::resetHeading(double heading)
+{
+    (*euler)[2] = heading;
+    (*head_q) = Eigen::Quaternion <double> (Eigen::AngleAxisd((*euler)[2], Eigen::Vector3d::UnitZ())*
+			Eigen::AngleAxisd((*euler)[1], Eigen::Vector3d::UnitY()) *
+			Eigen::AngleAxisd((*euler)[0], Eigen::Vector3d::UnitX()));
+    
+    return true;
+}
 
 
 /**

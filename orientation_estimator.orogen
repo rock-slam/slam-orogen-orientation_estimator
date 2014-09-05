@@ -84,6 +84,14 @@ task_context 'BaseEstimator' do
 	
     property('substract_earth_rotation', 'bool', true).
 	doc 'true if the earth rotation should be substracted.'
+	
+    #******************************
+    #********* Operations *********
+    #******************************
+    operation('resetHeading').
+        returns('bool').
+        argument('heading', 'double', 'heading').
+        doc 'resets the current heading, optimally to the true north'
 
     port_driven
     
