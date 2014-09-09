@@ -56,6 +56,11 @@ using namespace orientation_estimator;
 BaseEstimator::BaseEstimator(std::string const& name)
     : BaseEstimatorBase(name)
 {
+    euler = new Eigen::Matrix <double,NUMAXIS,1>;
+    head_q = new Eigen::Quaternion <double>;
+    rbs_b_g = new base::samples::RigidBodyState();
+    oldeuler = new Eigen::Matrix <double, NUMAXIS, 1>;
+    rbs_b_g->invalidate();
 }
 
 /**
@@ -69,6 +74,18 @@ BaseEstimator::BaseEstimator(std::string const& name)
  */
 BaseEstimator::~BaseEstimator()
 {
+    /** Free filter object **/
+    delete euler;
+    euler = NULL;
+
+    delete head_q;
+    head_q = NULL;
+
+    delete oldeuler;
+    oldeuler = NULL;
+
+    delete rbs_b_g;
+    rbs_b_g = NULL;
 }
 
 /**
@@ -145,7 +162,6 @@ void BaseEstimator::fog_samplesCallback(const base::Time &ts, const ::base::samp
  */
 void BaseEstimator::imu_orientationCallback(const base::Time &ts, const ::base::samples::RigidBodyState &imu_orientation_sample)
 {
-  
   Eigen::Quaternion <double> attitude (imu_orientation_sample.orientation.w(), imu_orientation_sample.orientation.x(),
     imu_orientation_sample.orientation.y(), imu_orientation_sample.orientation.z());
   
@@ -400,11 +416,10 @@ bool BaseEstimator::CorrectMagneticDeclination(Eigen::Quaternion< double >* quat
 
 bool BaseEstimator::configureHook()
 {
-  euler = new Eigen::Matrix <double,NUMAXIS,1>;
-  head_q = new Eigen::Quaternion <double>;
-  rbs_b_g = new base::samples::RigidBodyState();
   rbs_b_g->invalidate();
-  oldeuler = new Eigen::Matrix <double, NUMAXIS, 1>;
+  euler->setZero();
+  head_q->setIdentity();
+  oldeuler->setZero();
   fog_gyros = Eigen::Matrix <double, NUMAXIS, 1>::Zero();
   
   flag_fog_time  = false;
@@ -457,18 +472,5 @@ void BaseEstimator::stopHook()
 void BaseEstimator::cleanupHook()
 {
     BaseEstimatorBase::cleanupHook();
-    
-    /** Free filter object **/
-    delete euler;
-    euler = NULL;
-
-    delete head_q;
-    head_q = NULL;
-
-    delete oldeuler;
-    oldeuler = NULL;
-
-    delete rbs_b_g;
-    rbs_b_g = NULL;
 }
 
