@@ -24,6 +24,10 @@ task_context 'BaseEstimator' do
       needs_reliable_connection.
       doc 'optic gyro angular velocity 1D (Z axis).'
 
+    input_port("heading_correction", "/base/Angle").
+      needs_reliable_connection.
+      doc 'This angle will be applied to the current heading'
+
     #******************************
     #** Aggregator parameters ***** 
     #******************************

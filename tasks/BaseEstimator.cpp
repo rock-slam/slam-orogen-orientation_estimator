@@ -195,6 +195,16 @@ void BaseEstimator::imu_orientationCallback(const base::Time &ts, const ::base::
    }
    else
    {
+       /** Substract offset from angle **/
+       base::Angle heading_adjustment = base::Angle::fromRad(0.0);
+       if(_heading_correction.read(heading_adjustment) == RTT::NewData)
+       {
+	    (*euler)[2] = (*euler)[2] + heading_adjustment.getRad();
+	    (*head_q) = Eigen::Quaternion <double> (Eigen::AngleAxisd((*euler)[2], Eigen::Vector3d::UnitZ())*
+				Eigen::AngleAxisd((*euler)[1], Eigen::Vector3d::UnitY()) *
+				Eigen::AngleAxisd((*euler)[0], Eigen::Vector3d::UnitX()));
+       }
+       
 	/** Get Picth and Roll from Xsens **/
 	(*euler)[1] = base::getEuler(attitude)[1];//PITCH
 	(*euler)[0] = base::getEuler(attitude)[2];//ROLL
