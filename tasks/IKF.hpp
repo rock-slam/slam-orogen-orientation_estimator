@@ -7,11 +7,11 @@
 
 #include <quater_ikf/Ikf.hpp>
 
-//#define DEBUG_PRINTS 1
+#define DEBUG_PRINTS 1
 
 namespace orientation_estimator {
     
-    typedef filter::Ikf<double, true, true> IKFFilter; 
+    typedef filter::Ikf<double, true, false> IKFFilter; 
 
     /** WGS-84 ellipsoid constants (Nominal Gravity Model and Earth angular velocity) **/
     static const int Re = 6378137; /** Equatorial radius in meters **/
@@ -29,12 +29,6 @@ namespace orientation_estimator {
 	NUMAXIS = 3
     };
     
-    enum SensorType
-    {
-	IMU,
-	FOG
-    };
-
     static const double GRAVITY_MARGIN = 0.3; /** Accepted error for the gravity value in [m/s^2] **/
 
     /*! \class IKF 
@@ -64,8 +58,7 @@ namespace orientation_estimator {
         bool init_attitude;
 
         /** Index for initializing attitude **/
-	unsigned int initial_imu_samples;
-	unsigned int initial_fog_samples;
+	unsigned int initial_samples;
 	base::Time initial_alignment_ts;
 
         /**************************/
@@ -76,14 +69,10 @@ namespace orientation_estimator {
         FilterConfiguration config;
 
         /** Inertial noise parameters **/
-        InertialNoiseParameters inertialnoise_imu;
+        InertialNoiseParameters inertialnoise;
 	
-	/** Inertial noise parameters **/
-        InertialNoiseParameters inertialnoise_fog;
-
         /** Adaptive Measurement Configuration **/
-        AdaptiveAttitudeConfig adaptiveconfig_acc_imu;
-        AdaptiveAttitudeConfig adaptiveconfig_acc_fog;
+        AdaptiveAttitudeConfig adaptiveconfig;
 
         /** Location configuration variables **/
         LocationConfiguration location;
@@ -97,24 +86,16 @@ namespace orientation_estimator {
 	Eigen::Vector3d gyro_reading;
 
         /** Accumulated measurement for attitude calculation */
-	base::samples::IMUSensors initial_alignment_imu;
-	base::samples::IMUSensors initial_alignment_fog;
+	base::samples::IMUSensors initial_alignment;
 
         IKFFilter ikf_filter; /** The adaptive Indirect Kalman filter */
-	
-	double acc_update_period;
 	
 	double max_time_delta;
 	
 	Eigen::Vector3d acc_imu_sum;
-	Eigen::Vector3d acc_fog_sum;
 	Eigen::Vector3d mag_imu_sum;
 	unsigned imu_samples;
-	unsigned fog_samples;
 	base::Time imu_start;
-	base::Time fog_start;
-	
-	Eigen::Matrix3d gyro_measurement_noise;
 	
 	/** Task states **/
 	States last_state;
@@ -128,15 +109,11 @@ namespace orientation_estimator {
 	
     protected:
 
-        virtual void fog_samplesTransformerCallback(const base::Time &ts, const ::base::samples::IMUSensors &fog_samples_sample);
-
-        virtual void initial_orientationTransformerCallback(const base::Time &ts, const ::base::samples::RigidBodyState &initial_orientation_sample);
-
         virtual void imu_samplesTransformerCallback(const base::Time &ts, const ::base::samples::IMUSensors &imu_samples_sample);
 	
 	void writeOutput();
 	
-	void initialAlignment(const base::Time &ts, const base::samples::IMUSensors &imu_sample, SensorType type);
+	void initialAlignment(const base::Time &ts, const base::samples::IMUSensors &imu_sample);
 
     public:
         /** TaskContext constructor for IKF

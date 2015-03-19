@@ -112,20 +112,14 @@ task_context 'IKF' do
     #*********************************************
     #**** Inertial Measurement Unit Properties ***
     #*********************************************
-    property('inertial_noise_imu','orientation_estimator/InertialNoiseParameters').
+    property('inertial_noise','orientation_estimator/InertialNoiseParameters').
 	doc 'Noise parameters for the internal sensors of the IMU.'
-	
-    property('inertial_noise_fog','orientation_estimator/InertialNoiseParameters').
-	doc 'Noise parameters for the internal sensors of the FOG.'
 
     #****************************
     #**** Adaptive Properties ***
     #****************************
-    property('adaptive_config_acc_imu', 'orientation_estimator/AdaptiveAttitudeConfig').
+    property('adaptive_config', 'orientation_estimator/AdaptiveAttitudeConfig').
 	doc 'Adaptive estimation of external IMU acceleration.'
-
-    property('adaptive_config_acc_fog', 'orientation_estimator/AdaptiveAttitudeConfig').
-	doc 'Adaptive estimation of external FOG acceleration.'
 
     #******************************
     #**** Location Properties *****
@@ -142,26 +136,15 @@ task_context 'IKF' do
     input_port("imu_samples", "/base/samples/IMUSensors").
       needs_reliable_connection.
       doc 'IMU data values (acc, gyros and magn).'
-      
-    input_port("fog_samples","/base/samples/IMUSensors").
-      needs_reliable_connection.
-      doc 'optic gyro angular velocity. (acc and gyros)'
-      
-    input_port("initial_orientation", "/base/samples/RigidBodyState").
-      needs_reliable_connection.
-      doc 'initial orientation. It is not nesesary to use this port.'
 
     #******************************
     #** Aggregator parameters ***** 
     #******************************
     transformer do
         transformation("imu", "body")
-        transformation("fog", "body")
     
     	align_port("imu_samples", 0.01)
-	align_port("fog_samples", 0.01)
-	align_port("initial_orientation", 0.01)
-	max_latency(0.1)
+	max_latency(0.05)
     end
 
     #******************************
@@ -173,9 +156,8 @@ task_context 'IKF' do
     #******************************
     #********** States ************
     #******************************
-    runtime_states :INITIAL_NORTH_SEEKING, :INITIAL_ALIGNMENT, :MISSING_TRANSFORMATION
+    runtime_states :INITIAL_ALIGNMENT, :MISSING_TRANSFORMATION
     exception_states :NAN_ERROR, :ALIGNMENT_ERROR, :CONFIGURATION_ERROR
       
     port_driven
 end
-
