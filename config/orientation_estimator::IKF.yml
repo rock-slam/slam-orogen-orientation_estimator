@@ -1,0 +1,140 @@
+--- name:default
+# the global name that should be used for the internal body frame
+body_frame: 'body'
+# the global name that should be used for the internal imu frame
+imu_frame: 'imu'
+# Initial heading in radians. This is only used if imu_orientation is not connected and north seeking isnt activated.
+initial_heading: 0.0
+# Maximum time in seconds the transformer will wait until it starts dropping samples
+transformer_max_latency: 0.05
+# Minimum system time in seconds between two updates of the status ports
+transformer_status_period: 1.0
+
+--- name:Bremen
+# Localization properties related to the geographic place (i.e.: latitude, longitude, magnetic declination).
+location:
+  latitude: 0.926478944
+  longitude: 0.153588974
+  altitude: 12.0
+  magnetic_declination: 0.023561944
+  magnetic_declination_mode: :EAST
+  dip_angle: 1.187696556
+
+
+--- name:stim300_10g
+# General configuration values to run the task
+filter_configuration:
+  source_frame_name: 'imu'
+  target_frame_name: 'world_osg'
+  use_samples_as_theoretical_gravity: true
+  use_inclinometers: true
+  use_magnetometers: false
+  initial_alignment_duration: 1.0
+  correction_frequency: 1.0
+  substract_earth_rotation: true
+  fog_type: :SINGLE_AXIS
+  initial_heading_source: :MAGNETOMETERS
+
+# Time in s between imu_samples readings
+imu_samples_period: 0.008
+
+# Adaptive estimation of external acceleration.
+adaptive_config_acc:
+  M1: 5
+  M2: 5
+  gamma: 0.002
+
+# Adaptive estimation of external inclinometers.
+adaptive_config_inc:
+  M1: 10
+  M2: 2
+  gamma: 0.003
+
+# Inertial Sensors property.
+accelerometer_noise:
+  bandwidth: 33.0
+  biasoffset:
+    data:
+    - 0.0
+    - 0.0
+    - 0.0
+  randomwalk:
+    data:
+    - 0.0009531720
+    - 0.001048870
+    - 0.001022390
+  raterandomwalk:
+    data:
+    - 1.434889e-05
+    - 9.549511e-06
+    - 1.436321e-05
+  biasinstability:
+    data:
+    - 0.0005563053
+    - 0.0006042829
+    - 0.0006206795
+  resolution:
+    data:
+    - 0.005886 #0.6mg
+    - 0.005886 #0.6mg
+    - 0.005886 #0.6mg
+
+ # Inertial Sensors property.
+gyroscope_noise:
+  bandwidth: 33.0
+  biasoffset:
+    data:
+    - 0.0
+    - 0.0
+    - 0.0
+  randomwalk:
+    data:
+    - 4.655430e-05
+    - 4.384513e-05
+    - 4.298269e-05
+  raterandomwalk:
+    data:
+    - 2.924086e-07
+    - 2.591558e-07
+    - 5.058095e-08
+  biasinstability:
+    data:
+    - 7.170674e-06
+    - 7.549352e-06
+    - 7.530615e-06
+  resolution:
+    data:
+    - 0.0
+    - 0.0
+    - 0.0
+
+# Inclinometers Sensors property.
+inclinometer_noise:
+  bandwidth: 16.0 #Hertz
+  biasoffset:
+    data:
+    - 0.0
+    - 0.0
+    - 0.0
+  randomwalk:
+    data:
+    - 0.005019287
+    - 0.005019287
+    - 0.005019287
+  raterandomwalk:
+    data:
+    - 0.0
+    - 0.0
+    - 0.0
+  biasinstability:
+    data:
+    - 0.008292219
+    - 0.008160451
+    - 0.00846485
+  resolution:
+    data:
+    - 0.002
+    - 0.002
+    - 0.002
+
+
