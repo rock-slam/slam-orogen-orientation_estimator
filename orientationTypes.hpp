@@ -16,9 +16,9 @@ namespace orientation_estimator
 
     /** Magnetic declination mode **/
     enum MAGNETIC_DECLINATION_MODE{EAST, WEST};
-    
+
     enum FOG_TYPE{SINGLE_AXIS, MULTI_AXIS};
-    
+
     enum INITIAL_HEADING_SOURCE{MAGNETOMETERS, ESTIMATE_FROM_EARTH_ROTATION, INITIAL_HEADING_PARAMETER};
 
     /** Filter Configuration **/
@@ -31,28 +31,33 @@ namespace orientation_estimator
         bool use_samples_as_theoretical_gravity;//Inclinometers are more stable than accelerometers at initial time.
                                                     //They cloud be use as theoretical local gravity value instead of using
                                                     //some models as WGS-84 ellipsoid Earth.
-                                                    //It will use inclinometers in case use_inclinometers_leveling is true
+                                                    //It will use inclinometers in case use_inclinometers is true
                                                     //and accelerometers otherwise.
+        bool use_inclinometers;//Some IMU provide inclinometers as fast and more accurate solution for initial leveling.
+                                //Set True or False to use inclinometers values or not.
+                                //Note: Check if the IMU has inclinometers information.
 
-        bool use_magnetometers; // Some IMUS provides Magnetic information.
+        bool use_magnetometers;// Some IMUS provides Magnetic information.
                                 // Set to true or false in case you want to correct heading with magnetometers
-	
-	FOG_TYPE fog_type; // Type of the FOG Sensor, Single-Axis or Multi-Axis.
-	
-	INITIAL_HEADING_SOURCE initial_heading_source; // Source of the initial heading
-	
-	bool substract_earth_rotation; // Substract earth rotation from gyroscope readings. 
+
+        double initial_alignment_duration;// Duration in seconds to compute the initial alignment of the imu frame to the local geographic coordinate frame.
+                                            // This step involves the gravity vector (leveling) and finding the true North (gyrocompassing).
+                                            //Set to zero in case zero attitude is desired as initial orientation from an arbitrary frame.
+
+        double correction_frequency; //frequency of the correction step.Set to zero or the same sampling frequency to correct at the same time than predict
+
+
+        bool substract_earth_rotation; // Substract earth rotation from gyroscope readings. 
 				       // This should be done if the heading is aligned to the real north to reduce the error measurement,
 				       // otherwise it can increase the error.
+
+        FOG_TYPE fog_type; // Type of the FOG Sensor, Single-Axis or Multi-Axis.
 	
-	double initial_alignment_duration;  // Duration in seconds to compute the initial alignment of the imu frame to the local geographic coordinate frame.
-					    // This step involves the gravity vector (leveling) and finding the true North (gyrocompassing).
-					    //Set to zero in case zero attitude is desired as initial orientation from an arbitrary frame.
-						
-	double correction_frequency; //frequency of the correction step. Set to zero to correct at the same time than predict
+        INITIAL_HEADING_SOURCE initial_heading_source; // Source of the initial heading
+
     };
 
-    //Data type for the Inertial measurement characteristic
+    //Data type for the Accelerometers measurement characteristic
     struct InertialNoiseParameters
     {
         /********************************/
@@ -61,30 +66,16 @@ namespace orientation_estimator
 
         double bandwidth; //Inertial sensors bandwidth in Hertz.
         //This is characteristic of the sensor and should be equal
-        //or smaller than the sampling rate.
-
-        /** Gyroscope Noise **/
-        base::Vector3d gbiasoff;//bias offset in static regimen for the Gyroscopes
-        base::Vector3d gyrorw;//angle random walk for gyroscopes (rad/sqrt(s))
-        base::Vector3d gyrorrw;//rate random walk for gyroscopes (rad/s/sqrt(s))
-        base::Vector3d gbiasins; //gyros bias instability (rad/s)
+        //or smaller than the sampling rate but normaly it should respect Nyquist frequency
 
         /** Accelerometers Noise **/
-        base::Vector3d abiasoff;//bias offset in static regimen for the Accelerometers
-        base::Vector3d accrw;//velocity random walk for accelerometers (m/s/sqrt(s))
-        base::Vector3d accrrw;//acceleration random walk for accelerometers (m/s^2/sqrt(s))
-        base::Vector3d abiasins;//accelerometers bias instability (m/s^2)
-        base::Vector3d accresolut;//minimum accelerometers resolution (m/s^2)
-
-        /** Magnetometers Noise **/
-        base::Vector3d magrw; //random walk for magnetometers
-
-        /** Inclinometers Noise **/
-        base::Vector3d incrw; //random walk for inclinometers (m/s/sqrt(s))
-	base::Vector3d ibiasins;//accelerometers bias instability (m/s^2)
-        base::Vector3d incresolut;//minimum accelerometers resolution (m/s^2)
-
+        base::Vector3d biasoffset;//bias offset in static regimen for the Accelerometers
+        base::Vector3d randomwalk;//velocity/ random walk for accelerometers (m/s/sqrt(s))
+        base::Vector3d raterandomwalk;//acceleration random walk for accelerometers (m/s^2/sqrt(s))
+        base::Vector3d biasinstability;//accelerometers bias instability (m/s^2)
+        base::Vector3d resolution;//minimum accelerometers resolution (m/s^2)
     };
+
 
     //Data type to know the location
     struct LocationConfiguration

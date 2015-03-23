@@ -1,13 +1,13 @@
-name 'orientation_estimator'
-version '1.0'
+name "orientation_estimator"
+#version '1.0'
 
-import_types_from "base"
-import_types_from "aggregator"
-import_types_from "orientationTypes.hpp"
 
 using_library "aggregator"
 using_library "quater_ikf"
 
+import_types_from "base"
+import_types_from "aggregator"
+import_types_from "orientationTypes.hpp"
 
 task_context 'BaseEstimator' do
     needs_configuration
@@ -97,7 +97,6 @@ task_context 'BaseEstimator' do
         doc 'resets the current heading, optimally to the true north'
 
     port_driven
-    
 end
 
 task_context 'IKF' do
@@ -112,23 +111,32 @@ task_context 'IKF' do
     #*********************************************
     #**** Inertial Measurement Unit Properties ***
     #*********************************************
-    property('inertial_noise','orientation_estimator/InertialNoiseParameters').
-	doc 'Noise parameters for the internal sensors of the IMU.'
+    property('accelerometer_noise','orientation_estimator/InertialNoiseParameters').
+        doc 'Inertial Sensors property.'
+
+    property('gyroscope_noise','orientation_estimator/InertialNoiseParameters').
+        doc 'Inertial Sensors property.'
+
+    property('inclinometer_noise','orientation_estimator/InertialNoiseParameters').
+        doc 'Inertial Sensors property.'
 
     #****************************
     #**** Adaptive Properties ***
     #****************************
-    property('adaptive_config', 'orientation_estimator/AdaptiveAttitudeConfig').
-	doc 'Adaptive estimation of external IMU acceleration.'
+    property('adaptive_config_acc', 'orientation_estimator/AdaptiveAttitudeConfig').
+        doc 'Adaptive estimation of external acceleration.'
+
+    property('adaptive_config_inc', 'orientation_estimator/AdaptiveAttitudeConfig').
+        doc 'Adaptive estimation of external inclinometers.'
 
     #******************************
     #**** Location Properties *****
     #******************************
     property('location',"orientation_estimator/LocationConfiguration").
-	doc 'Localization properties related to the geographic place (i.e.: latitude, longitude, magnetic declination).'
+	    doc 'Localization properties related to the geographic place (i.e.: latitude, longitude, magnetic declination).'
 	
     property('initial_heading', 'double').
-	doc 'Initial heading in radians. This is only used if imu_orientation is not connected and north seeking isnt activated.'
+	    doc 'Initial heading in radians. This is only used if imu_orientation is not connected and north seeking isnt activated.'
 
     #******************************
     #******* Input Ports **********
@@ -142,22 +150,21 @@ task_context 'IKF' do
     #******************************
     transformer do
         transformation("imu", "body")
-    
     	align_port("imu_samples", 0.01)
-	max_latency(0.05)
+        max_latency(0.05)
     end
 
     #******************************
     #******* Output Ports *********
     #******************************
-    output_port('attitude_b_g', '/base/samples/RigidBodyState');
-      doc 'timestamped state vector holding orientation and angular velocity with respect to the Earth fixed frame (geographic frame).' 
+    output_port('orientation_samples_out', '/base/samples/RigidBodyState').
+        doc 'provides timestamped IMU orientation samples containing the quaternion.'
 
     #******************************
     #********** States ************
     #******************************
     runtime_states :INITIAL_ALIGNMENT, :MISSING_TRANSFORMATION
     exception_states :NAN_ERROR, :ALIGNMENT_ERROR, :CONFIGURATION_ERROR
-      
+
     port_driven
 end
