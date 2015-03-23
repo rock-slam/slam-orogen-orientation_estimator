@@ -4,14 +4,14 @@
 #define ORIENTATION_ESTIMATOR_IKF_TASK_HPP
 
 #include "orientation_estimator/IKFBase.hpp"
-
+#include "orientation_estimator/BaseEstimator.hpp"
 #include <quater_ikf/Ikf.hpp>
 
 #define DEBUG_PRINTS 1
 
 namespace orientation_estimator {
-    
-    typedef filter::Ikf<double, true, false> IKFFilter; 
+
+    typedef filter::Ikf<double, true, true> IKFFilter;
 
     /** WGS-84 ellipsoid constants (Nominal Gravity Model and Earth angular velocity) **/
     static const int Re = 6378137; /** Equatorial radius in meters **/
@@ -22,13 +22,12 @@ namespace orientation_estimator {
     static const double GWGS0 = 9.7803267714; /** Gravity value at the equator in m/s^2 **/
     static const double GWGS1 = 0.00193185138639; /** Gravity formula constant **/
     static const double EARTHW = 7.292115e-05; /** Earth angular velocity in rad/s **/
-    
-    enum CONST 
+
+    enum CONST
     {
-	IKFSTATEVECTORSIZE = IKFFilter::IKFSTATEVECTORSIZE,
-	NUMAXIS = 3
+        IKFSTATEVECTORSIZE = IKFFilter::IKFSTATEVECTORSIZE,
     };
-    
+
     static const double GRAVITY_MARGIN = 0.3; /** Accepted error for the gravity value in [m/s^2] **/
 
     /*! \class IKF 
@@ -58,8 +57,8 @@ namespace orientation_estimator {
         bool init_attitude;
 
         /** Index for initializing attitude **/
-	unsigned int initial_samples;
-	base::Time initial_alignment_ts;
+    	unsigned int initial_samples;
+        base::Time initial_alignment_ts;
 
         /**************************/
         /*** Property Variables ***/
@@ -68,11 +67,18 @@ namespace orientation_estimator {
         /** Filter configuration values **/
         FilterConfiguration config;
 
-        /** Inertial noise parameters **/
-        InertialNoiseParameters inertialnoise;
-	
+        /** Accelerometers noise parameters **/
+        InertialNoiseParameters accnoise;
+
+        /** Gyroscopes noise parameters **/
+        InertialNoiseParameters gyronoise;
+
+        /** Inclinometers noise parameters **/
+        InertialNoiseParameters incnoise;
+
         /** Adaptive Measurement Configuration **/
-        AdaptiveAttitudeConfig adaptiveconfig;
+        AdaptiveAttitudeConfig adaptiveconfigAcc;
+        AdaptiveAttitudeConfig adaptiveconfigInc;
 
         /** Location configuration variables **/
         LocationConfiguration location;
@@ -82,23 +88,23 @@ namespace orientation_estimator {
         /**************************/
 
         base::Time prev_ts;
-	
-	Eigen::Vector3d gyro_reading;
+
+        int correction_numbers, correction_idx;
+
+        double sampling_frequency;
+
+        /** Correction  Variables**/
+        Eigen::Vector3d correctionAcc, correctionInc;
 
         /** Accumulated measurement for attitude calculation */
-	base::samples::IMUSensors initial_alignment;
+        base::samples::IMUSensors initial_alignment;
 
         IKFFilter ikf_filter; /** The adaptive Indirect Kalman filter */
 	
-	double max_time_delta;
-	
-	Eigen::Vector3d acc_imu_sum;
-	Eigen::Vector3d mag_imu_sum;
-	unsigned imu_samples;
-	base::Time imu_start;
-	
-	/** Task states **/
-	States last_state;
+        double delta_t, max_time_delta;
+
+        /** Task states **/
+        States last_state;
         States new_state;
 
         /***************************/
@@ -106,14 +112,15 @@ namespace orientation_estimator {
         /***************************/
 
         base::samples::RigidBodyState orientation_out;
+        base::samples::RigidBodyState prev_orientation_out;
 	
     protected:
 
         virtual void imu_samplesTransformerCallback(const base::Time &ts, const ::base::samples::IMUSensors &imu_samples_sample);
 	
-	void writeOutput();
+        void writeOutput(const double delta_t, IKFFilter & filter);
 	
-	void initialAlignment(const base::Time &ts, const base::samples::IMUSensors &imu_sample);
+        void initialAlignment(const base::Time &ts, const base::samples::IMUSensors &imu_sample);
 
     public:
         /** TaskContext constructor for IKF
@@ -131,7 +138,7 @@ namespace orientation_estimator {
 
         /** Default deconstructor of IKF
          */
-	~IKF();
+        ~IKF();
 
         /** This hook is called by Orocos when the state machine transitions
          * from PreOperational to Stopped. If it returns false, then the
