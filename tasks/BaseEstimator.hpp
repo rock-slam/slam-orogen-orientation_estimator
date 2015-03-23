@@ -75,24 +75,24 @@ namespace orientation_estimator {
 	*/
 	static void PropagateHeadingQuaternion(Eigen::Quaternion <double> *quat, Eigen::Matrix<double, NUMAXIS , 1>* angvelo, double dt);
 	
-	/**
-	* @brief Substract the Earth rotation from the gyroscopes readout
+    /**
+	* @brief Subtract the Earth rotation from the gyroscopes readout
 	*
-	* This function computes the substraction of the rotation of the Earth (EARTHW)
+	* This function computes the subtraction of the rotation of the Earth (EARTHW)
 	* from the gyroscope values. This function uses quaternion of transformation from
-	* the body to the geographic frame and the latitude in radians.
+	* the geographic to body frame and the latitude in radians.
 	*
 	* @author Javier Hidalgo Carrio.
 	*
-	* @param[in, out] *u pointer to angular velocity
-	* @param[in] *qb_g quaternion from body frame to geographic frame
+	* @param[in, out] u angular velocity in body frame
+	* @param[in] q quaternion from body to geographic(world) frame v_body = q_body_2_geo * v_geo
 	* @param[in] latitude location latitude angle in radians
 	*
 	* @return void
 	*
 	*/
-	static void SubstractEarthRotation(Eigen::Matrix <double, NUMAXIS, 1> *u, Eigen::Quaternion <double> *qb_g, double latitude);
-	
+	static void SubtractEarthRotation(Eigen::Vector3d &u, const Eigen::Quaterniond &q, const double latitude);
+
 	
 	/**
 	* @brief This computes the theoretical gravity value according to the WGS-84 ellipsoid earth model.

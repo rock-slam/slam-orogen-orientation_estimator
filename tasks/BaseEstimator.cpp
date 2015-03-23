@@ -122,7 +122,7 @@ void BaseEstimator::fog_samplesCallback(const base::Time &ts, const ::base::samp
       
       /** Substract the Earth Rotation from the FOG output */
       if(_substract_earth_rotation.value())
-	SubstractEarthRotation (&fog_gyros, head_q, _latitude.value());
+	    this->SubtractEarthRotation (fog_gyros, *head_q, _latitude.value());
       
       /** Only in the Yaw (Z-axis) are the FOG angular velocity ) */
       fog_gyros[0] = 0.00;
@@ -349,23 +349,23 @@ void BaseEstimator::PropagateHeadingQuaternion( Eigen::Quaternion <double> *quat
   return;
 }
 
-/**
-* @brief Substract the Earth rotation from the gyroscopes readout
-*/
-void BaseEstimator::SubstractEarthRotation(Eigen::Matrix <double, NUMAXIS, 1> *u, Eigen::Quaternion <double> *qb_g, double latitude)
+void BaseEstimator::SubtractEarthRotation(Eigen::Vector3d &u, const Eigen::Quaterniond &q, const double latitude)
 {
-    Eigen::Matrix <double, NUMAXIS, 1> v (EARTHW*cos(latitude), 0, EARTHW*sin(latitude)); /**< vector of earth rotation components expressed in the geografic frame according to the latitude **/
+    Eigen::Vector3d v (EARTHW*cos(latitude), 0, EARTHW*sin(latitude)); /** vector of earth rotation components expressed in the geographic frame according to the latitude **/
 
     /** Compute the v vector expressed in the body frame **/
-    v = (*qb_g) * v;
-    
-//     std::cout<<"Earth Rotation:"<<v<<"\n";
+    v = q * v;
+
+    #ifdef DEBUG_PRINTS
+    std::cout<<"[STIM300_CLASS] Earth Rotation:"<<v<<"\n";
+    #endif
 
     /** Subtract the earth rotation to the vector of inputs (u = u-v**/
-    (*u)  = (*u) - v;
-    
+    u  = u - v;
+
     return;
-}
+};
+
 
 /**
 * @brief This computes the theoretical gravity value according to the WGS-84 ellipsoid earth model.
