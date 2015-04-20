@@ -2,15 +2,7 @@
 
 #include "IKF.hpp"
 
-#ifndef D2R
-#define D2R M_PI/180.00 /** Convert degree to radian **/
-#endif
-#ifndef R2D
-#define R2D 180.00/M_PI /** Convert radian to degree **/
-#endif
-
 #define DEBUG_PRINTS 1
-
 
 using namespace orientation_estimator;
 
@@ -363,151 +355,150 @@ void IKF::initialAlignment(const base::Time &ts,  const base::samples::IMUSensor
     /** Calculate the initial alignment to the local geographic frame **/
     if ((ts - initial_alignment_ts).toSeconds() >= config.initial_alignment_duration)
     {
-	    /** Set attitude to inital heading **/
+	    /** Set attitude to initial heading **/
 	    Eigen::Quaterniond initial_attitude = Eigen::Quaterniond(Eigen::AngleAxisd(_initial_heading.value(), Eigen::Vector3d::UnitZ()));
 
-	if (config.initial_alignment_duration > 0)
-	{
-	    if(initial_samples == 0)
-	    {
-		    RTT::log(RTT::Fatal)<<"[orientation_estimator] No samples available to perform the inital alignment."<<RTT::endlog();
-		    return exception(CONFIGURATION_ERROR);
-	    }
+        if (config.initial_alignment_duration > 0)
+        {
+            if(initial_samples == 0)
+            {
+                RTT::log(RTT::Fatal)<<"[orientation_estimator] No samples available to perform the inital alignment."<<RTT::endlog();
+                return exception(CONFIGURATION_ERROR);
+            }
 
-	    /** Compute mean values **/
-	    initial_alignment.acc /= (double)initial_samples;
-	    initial_alignment.gyro /= (double)initial_samples;
-	    initial_alignment.mag /= (double)initial_samples;
+            /** Compute mean values **/
+            initial_alignment.acc /= (double)initial_samples;
+            initial_alignment.gyro /= (double)initial_samples;
+            initial_alignment.mag /= (double)initial_samples;
 
-	    if ((base::isnotnan(initial_alignment.acc)) && (base::isnotnan(initial_alignment.gyro)))
-	    {
-		if (initial_alignment.acc.norm() < (GRAVITY+GRAVITY_MARGIN) && initial_alignment.acc.norm() > (GRAVITY-GRAVITY_MARGIN))
-		{
-		    /** Override the gravity model value with the sensed from the sensors **/
-		    if (config.use_samples_as_theoretical_gravity)
-			    ikf_filter.setGravity(initial_alignment.acc.norm());
-
-		    /** Compute the local horizontal plane **/
-		    Eigen::Quaterniond rot = Eigen::Quaterniond::FromTwoVectors(Eigen::Vector3d::UnitZ(), initial_alignment.acc);
-		    base::Vector3d euler = base::getEuler(rot);
-		    euler.z() = 0.0;
-		    /* TODO: This is most likely not correct, it should be plane in UNIT_Z, this is UNIT_Z in plane:
-		    Eigen::Vector3d euler;
-		    euler[0] = (double) asin((double)meanacc[1]/ (double)meanacc.norm()); // Roll
-		    euler[1] = (double) -atan(meanacc[0]/meanacc[2]); //Pitch
-		    euler[2] = 0.0; //Yaw
-		    */
-
-		    /** Set the attitude  **/
-		    initial_attitude = Eigen::Quaterniond(Eigen::AngleAxisd(euler[0], Eigen::Vector3d::UnitZ()) *
-							Eigen::AngleAxisd(euler[1], Eigen::Vector3d::UnitY()) *
-							Eigen::AngleAxisd(euler[2], Eigen::Vector3d::UnitX()));
-
-		    #ifdef DEBUG_PRINTS
-		    std::cout<< "******** Local Horizontal *******"<<"\n";
-		    std::cout<< "Roll: "<<base::Angle::rad2Deg(euler[2])<<" Pitch: "<<base::Angle::rad2Deg(euler[1])<<" Yaw: "<<base::Angle::rad2Deg(euler[0])<<"\n";
-		    #endif
-
-		    /** The angular velocity in the local horizontal plane **/
-		    /** Gyro_ho = Tho_body * gyro_body **/
-		    Eigen::Vector3d transformed_meangyro = initial_attitude * initial_alignment.gyro;
-
-		    /** Determine the initial heading **/
-		    if(config.initial_heading_source == MAGNETOMETERS)
-		    {
-                if(base::isnotnan(initial_alignment.mag) && !initial_alignment.mag.isZero())
+            if ((base::isnotnan(initial_alignment.acc)) && (base::isnotnan(initial_alignment.gyro)))
+            {
+                if (initial_alignment.acc.norm() < (GRAVITY+GRAVITY_MARGIN) && initial_alignment.acc.norm() > (GRAVITY-GRAVITY_MARGIN))
                 {
-                    Eigen::Vector3d transformed_meanmag = initial_attitude * initial_alignment.mag;
-                    euler[0] = base::Angle::fromRad(-atan2(transformed_meanmag.y(), transformed_meanmag.x())).getRad();
+                    /** Override the gravity model value with the sensed from the sensors **/
+                    if (config.use_samples_as_theoretical_gravity)
+                        ikf_filter.setGravity(initial_alignment.acc.norm());
+
+                    /** Compute the local horizontal plane **/
+                    Eigen::Quaterniond rot = Eigen::Quaterniond::FromTwoVectors(Eigen::Vector3d::UnitZ(), initial_alignment.acc);
+                    base::Vector3d euler = base::getEuler(rot);
+                    euler.z() = 0.0;
+
+                    /** Set the attitude  **/
+                    initial_attitude = Eigen::Quaterniond(Eigen::AngleAxisd(euler[0], Eigen::Vector3d::UnitZ()) *
+                                    Eigen::AngleAxisd(euler[1], Eigen::Vector3d::UnitY()) *
+                                    Eigen::AngleAxisd(euler[2], Eigen::Vector3d::UnitX()));
+
+                    #ifdef DEBUG_PRINTS
+                    std::cout<< "******** Local Horizontal *******"<<"\n";
+                    std::cout<< "Roll: "<<base::Angle::rad2Deg(euler[2])<<" Pitch: "<<base::Angle::rad2Deg(euler[1])<<" Yaw: "<<base::Angle::rad2Deg(euler[0])<<"\n";
+                    #endif
+
+                    /** The angular velocity in the local horizontal plane **/
+                    /** Gyro_ho = Tho_body * gyro_body **/
+                    Eigen::Vector3d transformed_meangyro = initial_attitude * initial_alignment.gyro;
+
+                    /** Determine the initial heading  **/
+                    if(config.initial_heading_source == MAGNETOMETERS)
+                    {
+                        if(base::isnotnan(initial_alignment.mag) && !initial_alignment.mag.isZero())
+                        {
+                            Eigen::Vector3d transformed_meanmag = initial_attitude * initial_alignment.mag;
+                            euler[0] = base::Angle::fromRad(-atan2(transformed_meanmag.y(), transformed_meanmag.x())).getRad();
+                        }
+                        else
+                        {
+                            RTT::log(RTT::Warning) << "Don't have any magnetometer samples." << RTT::endlog();
+                            RTT::log(RTT::Warning) << "Falling back to initial heading from parameter." << RTT::endlog();
+                            euler[0] = _initial_heading.value();
+                        }
+                    }
+                    else if(config.initial_heading_source == ESTIMATE_FROM_EARTH_ROTATION)
+                    {
+                        if (transformed_meangyro.x() == 0.0 && transformed_meangyro.y() == 0.0)
+                        {
+                            RTT::log(RTT::Warning) << "Couldn't estimate initial heading. Earth rotaion was estimated as zero." << RTT::endlog();
+                            RTT::log(RTT::Warning) << "Falling back to initial heading from parameter." << RTT::endlog();
+                            euler[0] = _initial_heading.value();
+                        }
+                        else
+                        {
+                            if (transformed_meangyro.x() == 0.0)
+                                euler[0] = (base::Angle::fromDeg(90.0) - base::Angle::fromRad(atan2(transformed_meangyro.x(), transformed_meangyro.y()))).getRad();
+                            else
+                                euler[0] = base::Angle::fromRad(atan2(transformed_meangyro.y(), transformed_meangyro.x())).getRad();
+                        }
+                    }
+                    else if(config.initial_heading_source == INITIAL_HEADING_PARAMETER)
+                    {
+                        euler[0] = _initial_heading.value();
+                    }
+                    else
+                    {
+                        RTT::log(RTT::Fatal)<<"[orientation_estimator] Selected initial heading source is unknown."<<RTT::endlog();
+                        return exception(CONFIGURATION_ERROR);
+                    }
+
+                    /** Set the attitude  **/
+                    initial_attitude = Eigen::Quaterniond(Eigen::AngleAxisd(euler[0], Eigen::Vector3d::UnitZ()) *
+                                    Eigen::AngleAxisd(euler[1], Eigen::Vector3d::UnitY()) *
+                                    Eigen::AngleAxisd(euler[2], Eigen::Vector3d::UnitX()));
+
+                    #ifdef DEBUG_PRINTS
+                    std::cout<< " Mean Gyro:\n"<<transformed_meangyro<<"\n Mean Acc:\n"<<initial_alignment.acc<<"\n";
+                    std::cout<< " Earth rot * cos(lat): "<<EARTHW*cos(location.latitude)<<"\n";
+                    std::cout<< " Filter Gravity: "<<ikf_filter.getGravity()[2]<<"\n";
+                    std::cout<< "******** Azimuthal Orientation *******"<<"\n";
+                    std::cout<< " Yaw: "<<base::Angle::rad2Deg(euler[0])<<"\n";
+                    #endif
+
+                    /** Compute the Initial Bias **/
+                    //Eigen::Vector3d gyro_bias = initial_alignment.gyro;
+                    //if(config.substract_earth_rotation)
+                    //    BaseEstimator::SubtractEarthRotation(gyro_bias, initial_attitude, location.latitude);
+
+                    //Eigen::Vector3d acc_bias = initial_alignment.acc - initial_attitude.inverse() * ikf_filter.getGravity();
+
+                    //ikf_filter.setInitBias(gyro_bias, acc_bias, Eigen::Vector3d::Zero());
+
+                    #ifdef DEBUG_PRINTS
+                    std::cout<< "******** Initial Bias Offset *******"<<"\n";
+                    std::cout<< " Gyroscopes Bias Offset:\n"<<ikf_filter.getGyroBias()<<"\n";
+                    std::cout<< " Accelerometers Bias Offset:\n"<<ikf_filter.getAccBias()<<"\n";
+                    #endif
                 }
                 else
                 {
-                    RTT::log(RTT::Warning) << "Don't have any magnetometer samples." << RTT::endlog();
-                    RTT::log(RTT::Warning) << "Falling back to initial heading from parameter." << RTT::endlog();
-                    euler[0] = _initial_heading.value();
+                    RTT::log(RTT::Fatal)<<"[orientation_estimator] ERROR in Initial Alignment. Unable to compute reliable attitude."<<RTT::endlog();
+                    RTT::log(RTT::Fatal)<<"[orientation_estimator] Computed "<< initial_alignment.acc.norm() <<" [m/s^2] gravitational margin of "<<GRAVITY_MARGIN<<" [m/s^2] has been exceeded."<<RTT::endlog();
+                    return exception(ALIGNMENT_ERROR);
                 }
-		    }
-		    else if(config.initial_heading_source == ESTIMATE_FROM_EARTH_ROTATION)
-		    {
-			if (transformed_meangyro.x() == 0.0 && transformed_meangyro.y() == 0.0)
-			{
-			    RTT::log(RTT::Warning) << "Couldn't estimate initial heading. Earth rotaion was estimated as zero." << RTT::endlog();
-			    RTT::log(RTT::Warning) << "Falling back to initial heading from parameter." << RTT::endlog();
-			    euler[0] = _initial_heading.value();
-			}
-			else
-			    euler[0] = base::Angle::fromRad(-atan2(transformed_meangyro.y(), transformed_meangyro.x())).getRad();
-		    }
-		    else if(config.initial_heading_source == INITIAL_HEADING_PARAMETER)
-		    {
-                euler[0] = _initial_heading.value();
-		    }
-		    else
-		    {
-			RTT::log(RTT::Fatal)<<"[orientation_estimator] Selected initial heading source is unknown."<<RTT::endlog();
-			return exception(CONFIGURATION_ERROR);
-		    }
+            }
+            else
+            {
+                RTT::log(RTT::Fatal)<<"[orientation_estimator] ERROR - NaN values in Initial Alignment."<<RTT::endlog();
+                RTT::log(RTT::Fatal)<<"[orientation_estimator] This might be a configuration error or sensor fault."<<RTT::endlog();
+                return exception(NAN_ERROR);
+            }
+        }
+        else
+        {
+            RTT::log(RTT::Warning)<<"[orientation_estimator] Skipping inital alignment. Initial alignment duration was zero."<<RTT::endlog();
+        }
 
-		    /** Set the attitude  **/
-		    initial_attitude = Eigen::Quaterniond(Eigen::AngleAxisd(euler[0], Eigen::Vector3d::UnitZ()) *
-							Eigen::AngleAxisd(euler[1], Eigen::Vector3d::UnitY()) *
-							Eigen::AngleAxisd(euler[2], Eigen::Vector3d::UnitX()));
+        ikf_filter.setAttitude(initial_attitude);
+        orientation_out.orientation = initial_attitude;
+        prev_orientation_out.orientation = initial_attitude;
+        init_attitude = true;
 
-		    #ifdef DEBUG_PRINTS
-		    std::cout<< " Mean Gyro:\n"<<transformed_meangyro<<"\n Mean Acc:\n"<<initial_alignment.acc<<"\n";
-		    std::cout<< " Earth rot * cos(lat): "<<EARTHW*cos(location.latitude)<<"\n";
-		    std::cout<< " Filter Gravity: "<<ikf_filter.getGravity()[2]<<"\n";
-		    std::cout<< "******** Azimuthal Orientation *******"<<"\n";
-		    std::cout<< " Yaw: "<<base::Angle::rad2Deg(euler[0])<<"\n";
-		    #endif
-
-		    /** Compute the Initial Bias **/
-		    Eigen::Vector3d gyro_bias = initial_alignment.gyro;
-		    if(config.substract_earth_rotation)
-			    BaseEstimator::SubtractEarthRotation(gyro_bias, initial_attitude, location.latitude);
-
-		    Eigen::Vector3d acc_bias = initial_alignment.acc - initial_attitude.inverse() * ikf_filter.getGravity();
-
-		    ikf_filter.setInitBias(gyro_bias, acc_bias, Eigen::Vector3d::Zero());
-
-		    #ifdef DEBUG_PRINTS
-		    std::cout<< "******** Initial Bias Offset *******"<<"\n";
-		    std::cout<< " Gyroscopes Bias Offset:\n"<<ikf_filter.getGyroBias()<<"\n";
-		    std::cout<< " Accelerometers Bias Offset:\n"<<ikf_filter.getAccBias()<<"\n";
-		    #endif
-		}
-		else
-		{
-		    RTT::log(RTT::Fatal)<<"[orientation_estimator] ERROR in Initial Alignment. Unable to compute reliable attitude."<<RTT::endlog();
-		    RTT::log(RTT::Fatal)<<"[orientation_estimator] Computed "<< initial_alignment.acc.norm() <<" [m/s^2] gravitational margin of "<<GRAVITY_MARGIN<<" [m/s^2] has been exceeded."<<RTT::endlog();
-		    return exception(ALIGNMENT_ERROR);
-		}
-	    }
-	    else
-	    {
-            RTT::log(RTT::Fatal)<<"[orientation_estimator] ERROR - NaN values in Initial Alignment."<<RTT::endlog();
-            RTT::log(RTT::Fatal)<<"[orientation_estimator] This might be a configuration error or sensor fault."<<RTT::endlog();
-            return exception(NAN_ERROR);
-	    }
-	}
-	else
-	{
-	    RTT::log(RTT::Warning)<<"[orientation_estimator] Skipping inital alignment. Initial alignment duration was zero."<<RTT::endlog();
-	}
-	
-	ikf_filter.setAttitude(initial_attitude);
-    orientation_out.orientation = initial_attitude;
-    prev_orientation_out.orientation = initial_attitude;
-	init_attitude = true;
-
-	#ifdef DEBUG_PRINTS
-	Eigen::Matrix <double,3,1> eulerprint;
-	eulerprint[2] = initial_attitude.toRotationMatrix().eulerAngles(2,1,0)[0];//Yaw
-	eulerprint[1] = initial_attitude.toRotationMatrix().eulerAngles(2,1,0)[1];//Pitch
-	eulerprint[0] = initial_attitude.toRotationMatrix().eulerAngles(2,1,0)[2];//Roll
-	std::cout<< "******** Initial Attitude  *******"<<"\n";
-	std::cout<< "Init Roll: "<<base::Angle::rad2Deg(eulerprint[0])<<" Init Pitch: "<<base::Angle::rad2Deg(eulerprint[1])<<" Init Yaw: "<<base::Angle::rad2Deg(eulerprint[2])<<"\n";
-	#endif
+        #ifdef DEBUG_PRINTS
+        Eigen::Matrix <double,3,1> eulerprint;
+        eulerprint[2] = initial_attitude.toRotationMatrix().eulerAngles(2,1,0)[0];//Yaw
+        eulerprint[1] = initial_attitude.toRotationMatrix().eulerAngles(2,1,0)[1];//Pitch
+        eulerprint[0] = initial_attitude.toRotationMatrix().eulerAngles(2,1,0)[2];//Roll
+        std::cout<< "******** Initial Attitude  *******"<<"\n";
+        std::cout<< "Init Roll: "<<base::Angle::rad2Deg(eulerprint[0])<<" Init Pitch: "<<base::Angle::rad2Deg(eulerprint[1])<<" Init Yaw: "<<base::Angle::rad2Deg(eulerprint[2])<<"\n";
+        #endif
     }
 }
 
