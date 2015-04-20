@@ -8,7 +8,7 @@ initial_heading: 0.0
 # Maximum time in seconds the transformer will wait until it starts dropping samples
 transformer_max_latency: 0.05
 # Minimum system time in seconds between two updates of the status ports
-transformer_status_period: 1.0
+transformer_status_period: 0.5
 
 --- name:Bremen
 # Localization properties related to the geographic place (i.e.: latitude, longitude, magnetic declination).
@@ -20,6 +20,15 @@ location:
   magnetic_declination_mode: :EAST
   dip_angle: 1.187696556
 
+--- name:DLR-Oberpfaffenhofen
+# Localization properties related to the geographic place (i.e.: latitude, longitude, magnetic declination).
+location:
+  latitude: 0.83923808 # 48.0848 NORTH
+  longitude: 0.196881866 # 11.2805 EAST
+  altitude: 581 #meters
+  magnetic_declination: 0.0471238898  #2.70 deg EAST
+  magnetic_declination_mode: :EAST
+  dip_angle: 0.00663
 
 --- name:stim300_10g
 # General configuration values to run the task
@@ -29,11 +38,11 @@ filter_configuration:
   use_samples_as_theoretical_gravity: true
   use_inclinometers: true
   use_magnetometers: false
-  initial_alignment_duration: 1.0
+  initial_alignment_duration: 0.02
   correction_frequency: 1.0
   substract_earth_rotation: true
   fog_type: :SINGLE_AXIS
-  initial_heading_source: :MAGNETOMETERS
+  initial_heading_source: :ESTIMATE_FROM_EARTH_ROTATION
 
 # Time in s between imu_samples readings
 imu_samples_period: 0.008
@@ -137,4 +146,235 @@ inclinometer_noise:
     - 0.002
     - 0.002
 
+--- name:stim300_5g
+# General configuration values to run the task
+filter_configuration:
+  source_frame_name: 'imu'
+  target_frame_name: 'world_osg'
+  use_samples_as_theoretical_gravity: true
+  use_inclinometers: true
+  use_magnetometers: false
+  initial_alignment_duration: 4.5
+  correction_frequency: 1.0
+  substract_earth_rotation: true
+  fog_type: :SINGLE_AXIS
+  initial_heading_source: :ESTIMATE_FROM_EARTH_ROTATION
+
+# Time in s between imu_samples readings
+imu_samples_period: 0.008
+
+# Adaptive estimation of external acceleration.
+adaptive_config_acc:
+  M1: 5
+  M2: 5
+  gamma: 0.001
+
+# Adaptive estimation of external inclinometers.
+adaptive_config_inc:
+  M1: 10
+  M2: 2
+  gamma: 0.003
+
+# Accelerometers Sensors property.
+accelerometer_noise:
+  bandwidth: 33.0 #Hertz
+  biasoffset:
+    data:
+    - 0.0
+    - 0.0
+    - 0.0
+  randomwalk:
+    data:
+    - 0.0005420144
+    - 0.0005131682
+    - 0.0004908665
+  raterandomwalk:
+    data:
+    - 0.0
+    - 0.0
+    - 0.0
+  biasinstability:
+    data:
+    - 0.0004368486
+    - 0.0003441604
+    - 0.0003097561
+  resolution:
+    data:
+    - 0.0024525 #0.25mg
+    - 0.0024525 #0.25mg
+    - 0.0024525 #0.25mg
+
+# Gyroscopes Sensors property.
+gyroscope_noise:
+  bandwidth: 33.0 #Hertz
+  biasoffset:
+    data:
+    - 0.0
+    - 0.0
+    - 0.0
+  randomwalk:
+    data:
+    - 3.320343e-05
+    - 4.455001e-05
+    - 4.060973e-05
+  raterandomwalk:
+    data:
+    - 0.0
+    - 0.0
+    - 0.0
+  biasinstability:
+    data:
+    - 7.05e-06
+    - 4.82e-06
+    - 6.36e-06
+  resolution:
+    data:
+    - 0.0
+    - 0.0
+    - 0.0
+
+# Inclinometers Sensors property.
+inclinometer_noise:
+  bandwidth: 16.0 #Hertz
+  biasoffset:
+    data:
+    - 0.0
+    - 0.0
+    - 0.0
+  randomwalk:
+    data:
+    - 0.005019287
+    - 0.005019287
+    - 0.005019287
+  raterandomwalk:
+    data:
+    - 0.0
+    - 0.0
+    - 0.0
+  biasinstability:
+    data:
+    - 0.008292219
+    - 0.008160451
+    - 0.00846485
+  resolution:
+    data:
+    - 0.002
+    - 0.002
+    - 0.002
+
+--- name:virtual_imu
+# General configuration values to run the task
+filter_configuration:
+  source_frame_name: 'imu'
+  target_frame_name: 'world_osg'
+  use_samples_as_theoretical_gravity: true
+  use_inclinometers: true
+  use_magnetometers: false
+  initial_alignment_duration: 4.5
+  correction_frequency: 1.0
+  substract_earth_rotation: true
+  fog_type: :SINGLE_AXIS
+  initial_heading_source: :ESTIMATE_FROM_EARTH_ROTATION
+
+# Time in s between imu_samples readings
+imu_samples_period: 0.008
+
+# Adaptive estimation of external acceleration.
+adaptive_config_acc:
+  M1: 5
+  M2: 5
+  gamma: 0.001
+
+# Adaptive estimation of external inclinometers.
+adaptive_config_inc:
+  M1: 10
+  M2: 2
+  gamma: 0.003
+
+# Accelerometers Sensors property.
+accelerometer_noise:
+  bandwidth: 33.0 #Hertz
+  biasoffset:
+    data:
+    - 0.0
+    - 0.0
+    - 0.0
+  randomwalk:
+    data:
+    - 0.01
+    - 0.01
+    - 0.01
+  raterandomwalk:
+    data:
+    - 0.0
+    - 0.0
+    - 0.0
+  biasinstability:
+    data:
+    - 0.001
+    - 0.001
+    - 0.001
+  resolution:
+    data:
+    - 0.0024525 #0.25mg
+    - 0.0024525 #0.25mg
+    - 0.0024525 #0.25mg
+
+# Gyroscopes Sensors property.
+gyroscope_noise:
+  bandwidth: 33.0 #Hertz
+  biasoffset:
+    data:
+    - 0.0
+    - 0.0
+    - 0.0
+  randomwalk:
+    data:
+    - 0.01
+    - 0.01
+    - 0.01
+  raterandomwalk:
+    data:
+    - 0.0
+    - 0.0
+    - 0.0
+  biasinstability:
+    data:
+    - 0.001
+    - 0.001
+    - 0.001
+  resolution:
+    data:
+    - 0.0
+    - 0.0
+    - 0.0
+
+## Inclinometers Sensors property.
+inclinometer_noise:
+  bandwidth: 16.0 #Hertz
+  biasoffset:
+    data:
+    - 0.0
+    - 0.0
+    - 0.0
+  randomwalk:
+    data:
+    - 0.01
+    - 0.01
+    - 0.01
+  raterandomwalk:
+    data:
+    - 0.0
+    - 0.0
+    - 0.0
+  biasinstability:
+    data:
+    - 0.001
+    - 0.001
+    - 0.001
+  resolution:
+    data:
+    - 0.002
+    - 0.002
+    - 0.002
 
