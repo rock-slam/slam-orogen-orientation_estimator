@@ -356,8 +356,8 @@ void IKF::initialAlignment(const base::Time &ts,  const base::samples::IMUSensor
     /** Calculate the initial alignment to the local geographic frame **/
     if ((ts - initial_alignment_ts).toSeconds() >= config.initial_alignment_duration)
     {
-	    /** Set attitude to initial heading **/
-	    Eigen::Quaterniond initial_attitude = Eigen::Quaterniond(Eigen::AngleAxisd(_initial_heading.value(), Eigen::Vector3d::UnitZ()));
+	/** Set attitude to initial heading **/
+	Eigen::Quaterniond initial_attitude = Eigen::Quaterniond(Eigen::AngleAxisd(_initial_heading.value(), Eigen::Vector3d::UnitZ()));
 
         if (config.initial_alignment_duration > 0)
         {
@@ -453,14 +453,17 @@ void IKF::initialAlignment(const base::Time &ts,  const base::samples::IMUSensor
                     std::cout<< " Yaw: "<<base::Angle::rad2Deg(euler[0])<<"\n";
                     #endif
 
-                    /** Compute the Initial Bias **/
-                    //Eigen::Vector3d gyro_bias = initial_alignment.gyro;
-                    //if(config.substract_earth_rotation)
-                    //    BaseEstimator::SubtractEarthRotation(gyro_bias, initial_attitude, location.latitude);
+		    if(config.initial_estimate_bias_offset)
+		    {
+			/** Compute the Initial Bias **/
+			Eigen::Vector3d gyro_bias = initial_alignment.gyro;
+			if(config.substract_earth_rotation)
+			    BaseEstimator::SubtractEarthRotation(gyro_bias, initial_attitude, location.latitude);
 
-                    //Eigen::Vector3d acc_bias = initial_alignment.acc - initial_attitude.inverse() * ikf_filter.getGravity();
+			Eigen::Vector3d acc_bias = initial_alignment.acc - initial_attitude.inverse() * ikf_filter.getGravity();
 
-                    //ikf_filter.setInitBias(gyro_bias, acc_bias, Eigen::Vector3d::Zero());
+			ikf_filter.setInitBias(gyro_bias, acc_bias, Eigen::Vector3d::Zero());
+		    }
 
                     #ifdef DEBUG_PRINTS
                     std::cout<< "******** Initial Bias Offset *******"<<"\n";

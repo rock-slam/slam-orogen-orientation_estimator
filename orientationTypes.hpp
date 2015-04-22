@@ -48,6 +48,10 @@ namespace orientation_estimator
         bool substract_earth_rotation; // Substract earth rotation from gyroscope readings. 
 				       // This should be done if the heading is aligned to the real north to reduce the error measurement,
 				       // otherwise it can increase the error.
+
+	bool initial_estimate_bias_offset; // During the initial alignment, the bias offset for accelerometers and gyroscopes will be estimated.
+					   // The IMU must be absolutely static during the initial alignment. 
+					   // This only makes sence if the other noise parameters are unknown.
 	
         INITIAL_HEADING_SOURCE initial_heading_source; // Source of the initial heading
 
