@@ -89,7 +89,7 @@ void IKF::imu_samplesTransformerCallback(const base::Time &ts, const ::base::sam
             /** Eliminate Earth rotation **/
             if(config.substract_earth_rotation)
             {
-                Eigen::Quaterniond q_body2world = ikf_filter.getAttitude().inverse();
+                Eigen::Quaterniond q_body2world = ikf_filter.getAttitude();
                 BaseEstimator::SubtractEarthRotation(gyro, q_body2world, location.latitude);
             }
 
