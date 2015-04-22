@@ -148,6 +148,35 @@ bool IKF::configureHook()
     adaptiveconfigAcc = _adaptive_config_acc.value();
     adaptiveconfigInc = _adaptive_config_inc.value();
     location = _location.value();
+    
+    /****************************/
+    /** Check misconfiguration **/
+    /****************************/
+    if(_imu_samples_period.value() <= 0.0)
+    {
+	RTT::log(RTT::Error)<<"[ORIENT_IKF] imu_samples_period has to be a positive value!"<<RTT::endlog();
+	return false;
+    }
+    if(config.correction_frequency <= 0.0)
+    {
+	RTT::log(RTT::Error)<<"[ORIENT_IKF] correction_frequency has to be a positive value!"<<RTT::endlog();
+	return false;
+    }
+    if(accnoise.bandwidth <= 0.0)
+    {
+	RTT::log(RTT::Error)<<"[ORIENT_IKF] accnoise.bandwidth has to be a positive value!"<<RTT::endlog();
+	return false;
+    }
+    if(gyronoise.bandwidth <= 0.0)
+    {
+	RTT::log(RTT::Error)<<"[ORIENT_IKF] gyronoise.bandwidth has to be a positive value!"<<RTT::endlog();
+	return false;
+    }
+    if(config.use_inclinometers && incnoise.bandwidth <= 0.0)
+    {
+	RTT::log(RTT::Error)<<"[ORIENT_IKF] incnoise.bandwidth has to be a positive value!"<<RTT::endlog();
+	return false;
+    }
 
     /** Calculate the sampling frequency **/
     sampling_frequency = 1.0/_imu_samples_period.value();
@@ -187,15 +216,18 @@ bool IKF::configureHook()
     Rg(1,1) = pow(gyronoise.randomwalk[1]/sqrtdelta_t,2);
     Rg(2,2) = pow(gyronoise.randomwalk[2]/sqrtdelta_t,2);
 
-    if (config.correction_frequency > incnoise.bandwidth)
-        sqrtdelta_t = sqrt(1.0/incnoise.bandwidth); /** Noise depends on frequency bandwidth **/
-    else
-        sqrtdelta_t = sqrt(1.0/config.correction_frequency); /** Noise depends on frequency bandwidth **/
-
     Ri = Eigen::Matrix3d::Zero();
-    Ri(0,0) = incnoise.resolution[0] + pow(incnoise.randomwalk[0]/sqrtdelta_t,2);
-    Ri(1,1) = incnoise.resolution[1] + pow(incnoise.randomwalk[1]/sqrtdelta_t,2);
-    Ri(2,2) = incnoise.resolution[2] + pow(incnoise.randomwalk[2]/sqrtdelta_t,2);
+    if(config.use_inclinometers)
+    {
+	if (config.correction_frequency > incnoise.bandwidth)
+	    sqrtdelta_t = sqrt(1.0/incnoise.bandwidth); /** Noise depends on frequency bandwidth **/
+	else
+	    sqrtdelta_t = sqrt(1.0/config.correction_frequency); /** Noise depends on frequency bandwidth **/
+	    
+	Ri(0,0) = incnoise.resolution[0] + pow(incnoise.randomwalk[0]/sqrtdelta_t,2);
+	Ri(1,1) = incnoise.resolution[1] + pow(incnoise.randomwalk[1]/sqrtdelta_t,2);
+	Ri(2,2) = incnoise.resolution[2] + pow(incnoise.randomwalk[2]/sqrtdelta_t,2);
+    }
 
     /** It does not have magnetometers **/
     Rm = Eigen::Matrix3d::Zero();
@@ -214,9 +246,12 @@ bool IKF::configureHook()
 
     /** Noise for error in inclinometers bias instability **/
     Qbi.setZero();
-    Qbi(0,0) = pow(incnoise.biasinstability[0],2);
-    Qbi(1,1) = pow(incnoise.biasinstability[1],2);
-    Qbi(2,2) = pow(incnoise.biasinstability[2],2);
+    if(config.use_inclinometers)
+    {
+	Qbi(0,0) = pow(incnoise.biasinstability[0],2);
+	Qbi(1,1) = pow(incnoise.biasinstability[1],2);
+	Qbi(2,2) = pow(incnoise.biasinstability[2],2);
+    }
 
 
     /** Initial error covariance **/
