@@ -492,12 +492,9 @@ void IKF::initialAlignment(const base::Time &ts,  const base::samples::IMUSensor
         init_attitude = true;
 
         #ifdef DEBUG_PRINTS
-        Eigen::Matrix <double,3,1> eulerprint;
-        eulerprint[2] = initial_attitude.toRotationMatrix().eulerAngles(2,1,0)[0];//Yaw
-        eulerprint[1] = initial_attitude.toRotationMatrix().eulerAngles(2,1,0)[1];//Pitch
-        eulerprint[0] = initial_attitude.toRotationMatrix().eulerAngles(2,1,0)[2];//Roll
+	base::Vector3d euler = base::getEuler(initial_attitude);
         std::cout<< "******** Initial Attitude  *******"<<"\n";
-        std::cout<< "Init Roll: "<<base::Angle::rad2Deg(eulerprint[0])<<" Init Pitch: "<<base::Angle::rad2Deg(eulerprint[1])<<" Init Yaw: "<<base::Angle::rad2Deg(eulerprint[2])<<"\n";
+        std::cout<< "Init Roll: "<<base::Angle::rad2Deg(euler[2])<<" Init Pitch: "<<base::Angle::rad2Deg(euler[1])<<" Init Yaw: "<<base::Angle::rad2Deg(euler[0])<<"\n";
         #endif
     }
 }
