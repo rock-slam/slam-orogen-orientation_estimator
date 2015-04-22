@@ -17,8 +17,6 @@ namespace orientation_estimator
     /** Magnetic declination mode **/
     enum MAGNETIC_DECLINATION_MODE{EAST, WEST};
 
-    enum FOG_TYPE{SINGLE_AXIS, MULTI_AXIS};
-
     enum INITIAL_HEADING_SOURCE{MAGNETOMETERS, ESTIMATE_FROM_EARTH_ROTATION, INITIAL_HEADING_PARAMETER};
 
     /** Filter Configuration **/
@@ -50,8 +48,6 @@ namespace orientation_estimator
         bool substract_earth_rotation; // Substract earth rotation from gyroscope readings. 
 				       // This should be done if the heading is aligned to the real north to reduce the error measurement,
 				       // otherwise it can increase the error.
-
-        FOG_TYPE fog_type; // Type of the FOG Sensor, Single-Axis or Multi-Axis.
 	
         INITIAL_HEADING_SOURCE initial_heading_source; // Source of the initial heading
 
