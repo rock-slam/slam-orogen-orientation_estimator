@@ -80,10 +80,6 @@ void IKF::imu_samplesTransformerCallback(const base::Time &ts, const ::base::sam
             gyro = transformed_imu_samples.gyro;
             inc = transformed_imu_samples.mag;
 
-            #ifdef DEBUG_PRINTS
-            struct timeval start, end;
-            gettimeofday(&start, NULL);
-            #endif
 
             /** Eliminate Earth rotation **/
             if(config.substract_earth_rotation)
@@ -98,20 +94,12 @@ void IKF::imu_samplesTransformerCallback(const base::Time &ts, const ::base::sam
             /** Accumulate correction measurements **/
             correctionAcc += acc; correctionInc += inc;
             correction_idx++;
-            #ifdef DEBUG_PRINTS
-            std::cout<<"correction index: "<<correction_idx<<"\n";
-            #endif
 
             if (correction_idx == correction_numbers)
             {
                 acc = correctionAcc / correction_numbers;
                 inc = correctionInc / correction_numbers;
 
-                #ifdef DEBUG_PRINTS
-                std::cout<<"UPDATE\n";
-                std::cout<<"acc\n"<<acc<<"\n";
-                std::cout<<"inc\n"<<inc<<"\n";
-                #endif
 
                 /** Update/Correction **/
                 ikf_filter.update(acc, true, inc, config.use_inclinometers);
@@ -121,12 +109,6 @@ void IKF::imu_samplesTransformerCallback(const base::Time &ts, const ::base::sam
                 correction_idx = 0.00;
             }
 
-            #ifdef DEBUG_PRINTS
-            gettimeofday(&end, NULL);
-
-            double execution_delta = ((end.tv_sec  - start.tv_sec) * 1000000u + end.tv_usec - start.tv_usec) / 1.e6;
-            std::cout<<"Execution delta:"<< execution_delta<<"\n";
-            #endif
     	}
         prev_ts = ts;
     }
