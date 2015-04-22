@@ -254,6 +254,8 @@ bool IKF::configureHook()
     ikf_filter.Init(P_0, Ra, Rg, Rm, Ri, Qbg, Qba, Qbi, gravity, location.dip_angle,
             adaptiveconfigAcc.M1, adaptiveconfigAcc.M2, adaptiveconfigAcc.gamma,
             adaptiveconfigInc.M1, adaptiveconfigInc.M2, adaptiveconfigInc.gamma);
+    
+    ikf_filter.setInitBias(gyronoise.biasoffset, accnoise.biasoffset, incnoise.biasoffset);
 
     /** Alignemnt configuration **/
     initial_alignment.acc.setZero();
