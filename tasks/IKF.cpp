@@ -169,8 +169,8 @@ bool IKF::configureHook()
     location = _location.value();
 
     /** Calculate the sampling frequency **/
-    sampling_frequency = 1.0/base::Time::fromSeconds(_imu_samples_period.value()).toSeconds();
-
+    sampling_frequency = 1.0/_imu_samples_period.value();
+    
     /********************************/
     /** Configuration frequencies  **/
     /********************************/
@@ -247,7 +247,7 @@ bool IKF::configureHook()
 
     /** Theoretical Gravity **/
     double gravity = GRAVITY;
-    if (location.latitude > 0.0 && location.latitude < 90.0)
+    if (location.latitude > 0.0 && location.latitude < base::Angle::deg2Rad(90.0))
         gravity = BaseEstimator::GravityModel (location.latitude, location.altitude);
 
     /** Initialize the filter, including the adaptive part **/
@@ -255,7 +255,7 @@ bool IKF::configureHook()
             adaptiveconfigAcc.M1, adaptiveconfigAcc.M2, adaptiveconfigAcc.gamma,
             adaptiveconfigInc.M1, adaptiveconfigInc.M2, adaptiveconfigInc.gamma);
 
-    /** Leveling configuration **/
+    /** Alignemnt configuration **/
     initial_alignment.acc.setZero();
     initial_alignment.gyro.setZero();
     initial_alignment.mag.setZero();
