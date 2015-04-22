@@ -314,7 +314,7 @@ void IKF::updateHook()
     IKFBase::updateHook();
 
     /** Write estimated attitude to output port **/
-    this->writeOutput(this->delta_t, ikf_filter);
+    this->writeOutput(ikf_filter);
 
     /** Write tast state if it has changed **/
     if(last_state != new_state)
@@ -503,7 +503,7 @@ void IKF::initialAlignment(const base::Time &ts,  const base::samples::IMUSensor
 }
 
 
-void IKF::writeOutput(const double delta_t, IKFFilter & filter)
+void IKF::writeOutput(IKFFilter & filter)
 {
     if (init_attitude && !prev_ts.isNull())
     {
@@ -511,7 +511,11 @@ void IKF::writeOutput(const double delta_t, IKFFilter & filter)
         orientation_out.orientation = filter.getAttitude();
         orientation_out.cov_orientation = filter.getCovariance().block<3, 3>(0,0);
         Eigen::AngleAxisd deltaAngleaxis(prev_orientation_out.orientation.inverse() * orientation_out.orientation);
-        orientation_out.angular_velocity = (deltaAngleaxis.angle() * deltaAngleaxis.axis())/delta_t;
+	double delta_time = (orientation_out.time - prev_orientation_out.time).toSeconds();
+	if(delta_time > 0.0)
+	    orientation_out.angular_velocity = (deltaAngleaxis.angle() * deltaAngleaxis.axis()) / delta_time;
+	else
+	    orientation_out.angular_velocity = base::Vector3d::Zero();
         _orientation_samples_out.write(orientation_out);
     }
 

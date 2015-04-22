@@ -118,7 +118,7 @@ namespace orientation_estimator {
 
         virtual void imu_samplesTransformerCallback(const base::Time &ts, const ::base::samples::IMUSensors &imu_samples_sample);
 	
-        void writeOutput(const double delta_t, IKFFilter & filter);
+        void writeOutput(IKFFilter & filter);
 	
         void initialAlignment(const base::Time &ts, const base::samples::IMUSensors &imu_sample);
 
