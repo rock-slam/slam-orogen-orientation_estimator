@@ -24,13 +24,12 @@ void IKF::imu_samplesTransformerCallback(const base::Time &ts, const ::base::sam
 {
     /** Receive imu to body transformation **/
     Eigen::Affine3d imu2body;
-  //  if (!_imu2body.get(ts, imu2body))
-  //  {
-  //      RTT::log(RTT::Error) << "skip, have no imu2body transformation sample!" << RTT::endlog();
-  //      new_state = MISSING_TRANSFORMATION;
-  //      return;
-  //  }
-    imu2body.setIdentity();
+    if (!_imu2body.get(ts, imu2body))
+    {
+        RTT::log(RTT::Error) << "skip, have no imu2body transformation sample!" << RTT::endlog();
+        new_state = MISSING_TRANSFORMATION;
+        return;
+    }
 
     /** check for NaN values */
     if(!base::isnotnan(imu_samples_sample.acc))
