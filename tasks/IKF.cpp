@@ -100,9 +100,17 @@ void IKF::imu_samplesTransformerCallback(const base::Time &ts, const ::base::sam
                 acc = correctionAcc / (double)correction_numbers;
                 inc = correctionInc / (double)correction_numbers;
 
+		base::Vector3d prev_euler = base::getEuler(ikf_filter.getAttitude());
 
                 /** Update/Correction **/
                 ikf_filter.update(acc, true, inc, config.use_inclinometers);
+
+		/** Exclude yaw angle from accelerometers correction step **/
+		base::Vector3d corrected_euler = base::getEuler(ikf_filter.getAttitude());
+		Eigen::Quaterniond corrected_attitide = Eigen::AngleAxisd(prev_euler[0], Eigen::Vector3d::UnitZ()) *
+							Eigen::AngleAxisd(corrected_euler[1], Eigen::Vector3d::UnitY()) *
+							Eigen::AngleAxisd(corrected_euler[2], Eigen::Vector3d::UnitX());
+		ikf_filter.setAttitude(corrected_attitide);
 
                 correctionAcc.setZero();
                 correctionInc.setZero();
