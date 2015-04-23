@@ -400,7 +400,7 @@ void IKF::initialAlignment(const base::Time &ts,  const base::samples::IMUSensor
                     /** Compute the local horizontal plane **/
                     Eigen::Quaterniond rot = Eigen::Quaterniond::FromTwoVectors(Eigen::Vector3d::UnitZ(), initial_alignment.acc);
                     base::Vector3d euler = base::getEuler(rot);
-                    euler.z() = 0.0;
+                    euler.x() = 0.0; // remove rotation around the z-axis
 
                     /** Set the attitude  **/
                     initial_attitude = Eigen::Quaterniond(Eigen::AngleAxisd(euler[0], Eigen::Vector3d::UnitZ()) *
