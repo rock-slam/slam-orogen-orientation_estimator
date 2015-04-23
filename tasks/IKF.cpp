@@ -42,9 +42,9 @@ void IKF::imu_samplesTransformerCallback(const base::Time &ts, const ::base::sam
         RTT::log(RTT::Fatal) << "ERROR: Gyroscope readings contain NaN values!" << RTT::endlog();
         return exception(NAN_ERROR);
     }
-    if(config.use_magnetometers && !base::isnotnan(imu_samples_sample.mag))
+    if((config.use_magnetometers || config.use_inclinometers) && !base::isnotnan(imu_samples_sample.mag))
     {
-        RTT::log(RTT::Fatal) << "ERROR: Magnetometer readings contain NaN values!" << RTT::endlog();
+        RTT::log(RTT::Fatal) << "ERROR: Magnetometer or inclinometer readings contain NaN values!" << RTT::endlog();
         return exception(NAN_ERROR);
     }
 
@@ -63,8 +63,8 @@ void IKF::imu_samplesTransformerCallback(const base::Time &ts, const ::base::sam
     }
     else
     {
-	    if(!prev_ts.isNull())
-    	{
+	if(!prev_ts.isNull())
+	{
             new_state = RUNNING;
             delta_t = (ts - prev_ts).toSeconds();
 
@@ -97,8 +97,8 @@ void IKF::imu_samplesTransformerCallback(const base::Time &ts, const ::base::sam
 
             if (correction_idx == correction_numbers)
             {
-                acc = correctionAcc / correction_numbers;
-                inc = correctionInc / correction_numbers;
+                acc = correctionAcc / (double)correction_numbers;
+                inc = correctionInc / (double)correction_numbers;
 
 
                 /** Update/Correction **/
@@ -106,7 +106,7 @@ void IKF::imu_samplesTransformerCallback(const base::Time &ts, const ::base::sam
 
                 correctionAcc.setZero();
                 correctionInc.setZero();
-                correction_idx = 0.00;
+                correction_idx = 0;
             }
 
     	}
@@ -273,7 +273,7 @@ bool IKF::configureHook()
     
     ikf_filter.setInitBias(gyronoise.biasoffset, accnoise.biasoffset, incnoise.biasoffset);
 
-    /** Alignemnt configuration **/
+    /** Alignment configuration **/
     initial_alignment.acc.setZero();
     initial_alignment.gyro.setZero();
     initial_alignment.mag.setZero();

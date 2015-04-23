@@ -89,7 +89,7 @@ namespace orientation_estimator {
 
         base::Time prev_ts;
 
-        int correction_numbers, correction_idx;
+        unsigned int correction_numbers, correction_idx;
 
         double sampling_frequency;
 
