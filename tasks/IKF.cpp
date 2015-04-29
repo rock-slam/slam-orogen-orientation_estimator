@@ -85,7 +85,7 @@ void IKF::imu_samplesTransformerCallback(const base::Time &ts, const ::base::sam
             if(config.substract_earth_rotation)
             {
                 Eigen::Quaterniond q_body2world = ikf_filter.getAttitude();
-                BaseEstimator::SubtractEarthRotation(gyro, q_body2world, location.latitude);
+                BaseEstimator::SubtractEarthRotation(gyro, q_body2world.inverse(), location.latitude);
             }
 
             /** Predict **/
@@ -483,7 +483,7 @@ void IKF::initialAlignment(const base::Time &ts,  const base::samples::IMUSensor
 			/** Compute the Initial Bias **/
 			Eigen::Vector3d gyro_bias = initial_alignment.gyro;
 			if(config.substract_earth_rotation)
-			    BaseEstimator::SubtractEarthRotation(gyro_bias, initial_attitude, location.latitude);
+			    BaseEstimator::SubtractEarthRotation(gyro_bias, initial_attitude.inverse(), location.latitude);
 
 			Eigen::Vector3d acc_bias = initial_alignment.acc - initial_attitude.inverse() * ikf_filter.getGravity();
 

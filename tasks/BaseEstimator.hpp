@@ -85,7 +85,8 @@ namespace orientation_estimator {
 	* @author Javier Hidalgo Carrio.
 	*
 	* @param[in, out] u angular velocity in body frame
-	* @param[in] q quaternion from body to geographic(world) frame v_body = q_body_2_geo * v_geo
+	* @param[in] q quaternion from body to geographic(world) frame, 
+        * 		in other words geographic(world) frame expressed in the body frame (v_body = q_body_2_geo * v_geo)
 	* @param[in] latitude location latitude angle in radians
 	*
 	* @return void
