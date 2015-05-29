@@ -122,6 +122,8 @@ namespace orientation_estimator {
 	
         void initialAlignment(const base::Time &ts, const base::samples::IMUSensors &imu_sample);
 
+        virtual bool resetHeading(double heading);
+
     public:
         /** TaskContext constructor for IKF
          * \param name Name of the task. This name needs to be unique to make it identifiable via nameservices.

@@ -161,6 +161,14 @@ task_context 'IKF' do
         doc 'provides timestamped IMU orientation samples containing the quaternion.'
 
     #******************************
+    #********* Operations *********
+    #******************************
+    operation('resetHeading').
+        returns('bool').
+        argument('heading', 'double', 'heading').
+        doc 'resets the current heading, optimally to the true north'
+
+    #******************************
     #********** States ************
     #******************************
     runtime_states :INITIAL_ALIGNMENT, :MISSING_TRANSFORMATION

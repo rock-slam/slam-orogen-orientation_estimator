@@ -548,3 +548,11 @@ void IKF::writeOutput(IKFFilter & filter)
     prev_orientation_out = orientation_out;
 }
 
+bool IKF::resetHeading(double heading)
+{
+    base::Vector3d euler = base::getEuler(ikf_filter.getAttitude());
+    Eigen::Quaterniond corrected_attitide = Eigen::AngleAxisd(base::Angle::normalizeRad(heading), Eigen::Vector3d::UnitZ()) *
+                                            Eigen::AngleAxisd(euler[1], Eigen::Vector3d::UnitY()) *
+                                            Eigen::AngleAxisd(euler[2], Eigen::Vector3d::UnitX());
+    return ikf_filter.setAttitude(corrected_attitide);
+}
