@@ -96,6 +96,8 @@ namespace orientation_estimator {
         /** Correction  Variables**/
         Eigen::Vector3d correctionAcc, correctionInc;
 
+        Eigen::Vector3d acc_body; // saved acceleration for output
+
         /** Accumulated measurement for attitude calculation */
         base::samples::IMUSensors initial_alignment;
 
@@ -113,6 +115,9 @@ namespace orientation_estimator {
 
         base::samples::RigidBodyState orientation_out;
         base::samples::RigidBodyState prev_orientation_out;
+
+        base::samples::RigidBodyAcceleration acceleration_out;
+
 	
     protected:
 

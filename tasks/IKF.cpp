@@ -80,6 +80,7 @@ void IKF::imu_samplesTransformerCallback(const base::Time &ts, const ::base::sam
             gyro = transformed_imu_samples.gyro;
             inc = transformed_imu_samples.mag;
 
+            acc_body = acc; // save this to be output later after being corrected
 
             /** Eliminate Earth rotation **/
             if(config.substract_earth_rotation)
@@ -98,6 +99,7 @@ void IKF::imu_samplesTransformerCallback(const base::Time &ts, const ::base::sam
             if (correction_idx == correction_numbers)
             {
                 acc = correctionAcc / (double)correction_numbers;
+
                 inc = correctionInc / (double)correction_numbers;
 
 		base::Vector3d prev_euler = base::getEuler(ikf_filter.getAttitude());
@@ -216,6 +218,12 @@ bool IKF::configureHook()
     Ra(0,0) = accnoise.resolution[0] + pow(accnoise.randomwalk[0]/sqrtdelta_t,2);
     Ra(1,1) = accnoise.resolution[1] + pow(accnoise.randomwalk[1]/sqrtdelta_t,2);
     Ra(2,2) = accnoise.resolution[2] + pow(accnoise.randomwalk[2]/sqrtdelta_t,2);
+
+    sqrtdelta_t = sqrt(1.0/accnoise.bandwidth); /** Noise depends on frequency bandwidth **/
+    acceleration_out.cov_acceleration = Eigen::Matrix3d::Zero(); // this is the noise on the acceleration output which occurs at every sample
+    acceleration_out.cov_acceleration(0,0) = accnoise.resolution[0] + pow(accnoise.randomwalk[0]/sqrtdelta_t,2);
+    acceleration_out.cov_acceleration(1,1) = accnoise.resolution[1] + pow(accnoise.randomwalk[1]/sqrtdelta_t,2);
+    acceleration_out.cov_acceleration(2,2) = accnoise.resolution[2] + pow(accnoise.randomwalk[2]/sqrtdelta_t,2);
 
     sqrtdelta_t = sqrt(1.0/gyronoise.bandwidth); /** Noise depends on frequency bandwidth **/
 
@@ -543,6 +551,11 @@ void IKF::writeOutput(IKFFilter & filter)
 	else
 	    orientation_out.angular_velocity = base::Vector3d::Zero();
         _orientation_samples_out.write(orientation_out);
+
+        acceleration_out.time = prev_ts;
+//        acceleration_out.acceleration = filter.getAttitude().toRotationMatrix()*(acc_body - filter.getAccBias() - filter.getGravityinBody()); // world frame, since RigidBodyAcceleration is defined this way
+        acceleration_out.acceleration = acc_body - filter.getAccBias() - filter.getGravityinBody(); // body frame
+        _acceleration_samples_out.write(acceleration_out);
     }
 
     prev_orientation_out = orientation_out;

@@ -160,6 +160,9 @@ task_context 'IKF' do
     output_port('orientation_samples_out', '/base/samples/RigidBodyState').
         doc 'provides timestamped IMU orientation samples containing the quaternion.'
 
+    output_port('acceleration_samples_out', '/base/samples/RigidBodyAcceleration').
+        doc 'provides corrected acceleration output in the body frame.'
+
     #******************************
     #********* Operations *********
     #******************************
