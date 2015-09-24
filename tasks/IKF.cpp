@@ -318,6 +318,7 @@ bool IKF::configureHook()
     orientation_out.sourceFrame = config.source_frame_name;
     orientation_out.targetFrame = config.target_frame_name;
     orientation_out.orientation.setIdentity();
+    acc_body = Eigen::Vector3d::Ones() * base::NaN<double>();
 
     prev_orientation_out = orientation_out;
 
@@ -552,10 +553,13 @@ void IKF::writeOutput(IKFFilter & filter)
 	    orientation_out.angular_velocity = base::Vector3d::Zero();
         _orientation_samples_out.write(orientation_out);
 
-        acceleration_out.time = prev_ts;
-//        acceleration_out.acceleration = filter.getAttitude().toRotationMatrix()*(acc_body - filter.getAccBias() - filter.getGravityinBody()); // world frame, since RigidBodyAcceleration is defined this way
-        acceleration_out.acceleration = acc_body - filter.getAccBias() - filter.getGravityinBody(); // body frame
-        _acceleration_samples_out.write(acceleration_out);
+        if(base::isnotnan(acc_body))
+        {
+            acceleration_out.time = prev_ts;
+    //        acceleration_out.acceleration = filter.getAttitude().toRotationMatrix()*(acc_body - filter.getAccBias() - filter.getGravityinBody()); // world frame, since RigidBodyAcceleration is defined this way
+            acceleration_out.acceleration = acc_body - filter.getAccBias() - filter.getGravityinBody(); // body frame
+            _acceleration_samples_out.write(acceleration_out);
+        }
     }
 
     prev_orientation_out = orientation_out;
