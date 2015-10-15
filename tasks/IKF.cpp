@@ -415,7 +415,7 @@ void IKF::initialAlignment(const base::Time &ts,  const base::samples::IMUSensor
                         ikf_filter.setGravity(initial_alignment.acc.norm());
 
                     /** Compute the local horizontal plane **/
-                    Eigen::Quaterniond rot = Eigen::Quaterniond::FromTwoVectors(Eigen::Vector3d::UnitZ(), initial_alignment.acc);
+                    Eigen::Quaterniond rot = Eigen::Quaterniond::FromTwoVectors(initial_alignment.acc, Eigen::Vector3d::UnitZ());
                     base::Vector3d euler = base::getEuler(rot);
                     euler.x() = 0.0; // remove rotation around the z-axis
 
