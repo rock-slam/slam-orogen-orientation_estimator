@@ -154,6 +154,9 @@ task_context 'IKF' do
         max_latency(0.05)
     end
 
+    # The frame exported as target frame in the generated orientations
+    property 'world_frame', '/std/string'
+
     #******************************
     #******* Output Ports *********
     #******************************

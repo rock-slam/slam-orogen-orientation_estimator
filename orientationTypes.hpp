@@ -22,10 +22,6 @@ namespace orientation_estimator
     /** Filter Configuration **/
     struct FilterConfiguration
     {
-        std::string source_frame_name; //Output Frame name. Transformation: source -> target
-
-        std::string target_frame_name; //Output Frame name. Transformation: source -> target
-
         bool use_samples_as_theoretical_gravity;//Inclinometers are more stable than accelerometers at initial time.
                                                     //They cloud be use as theoretical local gravity value instead of using
                                                     //some models as WGS-84 ellipsoid Earth.
