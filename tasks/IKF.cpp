@@ -461,7 +461,7 @@ void IKF::initialAlignment(const base::Time &ts,  const base::samples::IMUSensor
                             if (transformed_meangyro.x() == 0.0)
                                 euler[0] = (base::Angle::fromDeg(90.0) - base::Angle::fromRad(atan2(transformed_meangyro.x(), transformed_meangyro.y()))).getRad();
                             else
-                                euler[0] = base::Angle::fromRad(atan2(transformed_meangyro.y(), transformed_meangyro.x())).getRad();
+                                euler[0] = base::Angle::fromRad(-atan2(transformed_meangyro.y(), transformed_meangyro.x())).getRad();
                         }
                     }
                     else if(config.initial_heading_source == INITIAL_HEADING_PARAMETER)
