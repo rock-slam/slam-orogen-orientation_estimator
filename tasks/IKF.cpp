@@ -315,8 +315,8 @@ bool IKF::configureHook()
 
     /** Output variable **/
     orientation_out.invalidate();
-    orientation_out.sourceFrame = config.source_frame_name;
-    orientation_out.targetFrame = config.target_frame_name;
+    orientation_out.sourceFrame = _body_frame.get();
+    orientation_out.targetFrame = _world_frame.get();
     orientation_out.orientation.setIdentity();
     acc_body = Eigen::Vector3d::Ones() * base::NaN<double>();
 
