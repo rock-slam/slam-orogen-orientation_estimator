@@ -93,6 +93,8 @@ namespace orientation_estimator {
 
         double sampling_frequency;
 
+        Eigen::Vector3d current_angular_velocity;
+
         /** Correction  Variables**/
         Eigen::Vector3d correctionAcc, correctionInc;
 

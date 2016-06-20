@@ -322,6 +322,8 @@ bool IKF::configureHook()
 
     prev_orientation_out = orientation_out;
 
+    current_angular_velocity = Eigen::Vector3d::Zero();
+
     #ifdef DEBUG_PRINTS
     std::cout<< "Sampling frequency: "<<sampling_frequency<<"\n";
     std::cout<< "Correction frequency: "<<config.correction_frequency<<"\n";
@@ -545,12 +547,17 @@ void IKF::writeOutput(IKFFilter & filter)
         orientation_out.time = prev_ts;
         orientation_out.orientation = filter.getAttitude();
         orientation_out.cov_orientation = filter.getCovariance().block<3, 3>(0,0);
-        Eigen::AngleAxisd deltaAngleaxis(prev_orientation_out.orientation.inverse() * orientation_out.orientation);
+        if (prev_orientation_out.time.isNull())
+            prev_orientation_out = orientation_out;
 	double delta_time = (orientation_out.time - prev_orientation_out.time).toSeconds();
-	if(delta_time > 0.0)
-	    orientation_out.angular_velocity = (deltaAngleaxis.angle() * deltaAngleaxis.axis()) / delta_time;
-	else
-	    orientation_out.angular_velocity = base::Vector3d::Zero();
+	if(delta_time >= (1.0/sampling_frequency))
+        {
+            Eigen::AngleAxisd deltaAngleaxis(prev_orientation_out.orientation.inverse() * orientation_out.orientation);
+	    current_angular_velocity = (deltaAngleaxis.angle() * deltaAngleaxis.axis()) / delta_time;
+            prev_orientation_out = orientation_out;
+        }
+	orientation_out.angular_velocity = current_angular_velocity;
+
         _orientation_samples_out.write(orientation_out);
 
         if(base::isnotnan(acc_body))
@@ -561,8 +568,6 @@ void IKF::writeOutput(IKFFilter & filter)
             _acceleration_samples_out.write(acceleration_out);
         }
     }
-
-    prev_orientation_out = orientation_out;
 }
 
 bool IKF::resetHeading(double heading)
