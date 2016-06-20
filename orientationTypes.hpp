@@ -48,6 +48,9 @@ namespace orientation_estimator
 	bool initial_estimate_bias_offset; // During the initial alignment, the bias offset for accelerometers and gyroscopes will be estimated.
 					   // The IMU must be absolutely static during the initial alignment. 
 					   // This only makes sence if the other noise parameters are unknown.
+
+        bool forward_angular_velocity_from_gyro; // If this value is true the angular velocity provided by the gyros is forwarded,
+                                                 // otherwise the angular velocity is derivated from the orientation in the filter.
 	
         INITIAL_HEADING_SOURCE initial_heading_source; // Source of the initial heading
 

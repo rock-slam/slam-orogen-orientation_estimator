@@ -55,6 +55,11 @@ void IKF::imu_samplesTransformerCallback(const base::Time &ts, const ::base::sam
     transformed_imu_samples.gyro = imu2body.rotation() * imu_samples_sample.gyro;
     transformed_imu_samples.mag = imu2body.rotation() * imu_samples_sample.mag;
 
+    if(config.forward_angular_velocity_from_gyro)
+    {
+        current_angular_velocity = transformed_imu_samples.gyro;
+    }
+
     /** Attitude filter **/
     if(!init_attitude)
     {
@@ -539,7 +544,6 @@ void IKF::initialAlignment(const base::Time &ts,  const base::samples::IMUSensor
     }
 }
 
-
 void IKF::writeOutput(IKFFilter & filter)
 {
     if (init_attitude && !prev_ts.isNull())
@@ -549,12 +553,15 @@ void IKF::writeOutput(IKFFilter & filter)
         orientation_out.cov_orientation = filter.getCovariance().block<3, 3>(0,0);
         if (prev_orientation_out.time.isNull())
             prev_orientation_out = orientation_out;
-	double delta_time = (orientation_out.time - prev_orientation_out.time).toSeconds();
-	if(delta_time >= (1.0/sampling_frequency))
+        if(!config.forward_angular_velocity_from_gyro)
         {
-            Eigen::AngleAxisd deltaAngleaxis(prev_orientation_out.orientation.inverse() * orientation_out.orientation);
-	    current_angular_velocity = (deltaAngleaxis.angle() * deltaAngleaxis.axis()) / delta_time;
-            prev_orientation_out = orientation_out;
+            double delta_time = (orientation_out.time - prev_orientation_out.time).toSeconds();
+            if(delta_time >= (1.0/sampling_frequency))
+            {
+                Eigen::AngleAxisd deltaAngleaxis(prev_orientation_out.orientation.inverse() * orientation_out.orientation);
+                current_angular_velocity = (deltaAngleaxis.angle() * deltaAngleaxis.axis()) / delta_time;
+                prev_orientation_out = orientation_out;
+            }
         }
 	orientation_out.angular_velocity = current_angular_velocity;
 
