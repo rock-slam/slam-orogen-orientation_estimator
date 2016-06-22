@@ -8,8 +8,8 @@
  * which case you do not need this file
  */
 
-#include <base/time.h>
-#include <base/eigen.h>
+#include <base/Time.hpp>
+#include <base/Eigen.hpp>
 
 namespace orientation_estimator
 {
