@@ -91,10 +91,24 @@ task_context 'BaseEstimator' do
     #******************************
     #********* Operations *********
     #******************************
+
+    # Resets the current heading, usually to the true north
+    #
+    # For the purpose of aligning the heading to an absolute heading (e.g. true
+    # north), addHeadingOffset should be preferred. This is kept for
+    # backward-compatibility
     operation('resetHeading').
         returns('bool').
         argument('heading', 'double', 'heading').
         doc 'resets the current heading, optimally to the true north'
+
+    # Add an offset to the current heading
+    #
+    # This is commonly used to align the heading estimate to the true north. It
+    # should be preferred to resetHeading as the offset is a constant, whereas
+    # resetting to an absolute heading is time-sensitive.
+    operation('addHeadingOffset').
+        argument('offset', 'double', 'heading')
 
     port_driven
 end
@@ -169,10 +183,24 @@ task_context 'IKF' do
     #******************************
     #********* Operations *********
     #******************************
+
+    # Resets the current heading, usually to the true north
+    #
+    # For the purpose of aligning the heading to an absolute heading (e.g. true
+    # north), addHeadingOffset should be preferred. This is kept for
+    # backward-compatibility
     operation('resetHeading').
         returns('bool').
-        argument('heading', 'double', 'heading').
-        doc 'resets the current heading, optimally to the true north'
+        argument('heading', 'double', 'heading')
+
+    # Add an offset to the current heading
+    #
+    # This is commonly used to align the heading estimate to the true north. It
+    # should be preferred to resetHeading as the offset is a constant, whereas
+    # resetting to an absolute heading is time-sensitive.
+    operation('addHeadingOffset').
+        returns('bool').
+        argument('heading', 'double', 'heading')
 
     #******************************
     #********** States ************

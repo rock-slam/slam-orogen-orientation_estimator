@@ -53,6 +53,7 @@ namespace orientation_estimator {
         virtual void imu_orientationCallback(const base::Time &ts, const ::base::samples::RigidBodyState &imu_orientation_sample);
 	
 	virtual bool resetHeading(double heading);
+        virtual void addHeadingOffset(double offset);
 
     public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW

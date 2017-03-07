@@ -585,3 +585,12 @@ bool IKF::resetHeading(double heading)
                                             Eigen::AngleAxisd(euler[2], Eigen::Vector3d::UnitX());
     return ikf_filter.setAttitude(corrected_attitide);
 }
+
+bool IKF::addHeadingOffset(double offset)
+{
+    base::Vector3d euler = base::getEuler(ikf_filter.getAttitude());
+    Eigen::Quaterniond corrected_attitide = Eigen::AngleAxisd(euler[0] + offset, Eigen::Vector3d::UnitZ()) *
+                                            Eigen::AngleAxisd(euler[1], Eigen::Vector3d::UnitY()) *
+                                            Eigen::AngleAxisd(euler[2], Eigen::Vector3d::UnitX());
+    return ikf_filter.setAttitude(corrected_attitide);
+}

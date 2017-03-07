@@ -130,6 +130,7 @@ namespace orientation_estimator {
         void initialAlignment(const base::Time &ts, const base::samples::IMUSensors &imu_sample);
 
         virtual bool resetHeading(double heading);
+        virtual bool addHeadingOffset(double offset);
 
     public:
         /** TaskContext constructor for IKF

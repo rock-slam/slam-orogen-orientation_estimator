@@ -268,6 +268,15 @@ bool BaseEstimator::resetHeading(double heading)
     return true;
 }
 
+void BaseEstimator::addHeadingOffset(double offset)
+{
+    (*euler)[2]    += offset;
+    (*oldeuler)[2] += offset;
+    (*head_q) = Eigen::Quaternion <double> (Eigen::AngleAxisd((*euler)[2], Eigen::Vector3d::UnitZ())*
+			Eigen::AngleAxisd((*euler)[1], Eigen::Vector3d::UnitY()) *
+			Eigen::AngleAxisd((*euler)[0], Eigen::Vector3d::UnitX()));
+}
+
 
 /**
  * @brief This function computes the discrete-time propagation of a quaternion
