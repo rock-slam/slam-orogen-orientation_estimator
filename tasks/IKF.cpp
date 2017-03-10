@@ -202,6 +202,7 @@ bool IKF::configureHook()
     /***********************/
     initializeFilter(Eigen::Quaterniond::Identity(), 1.e-06 * Eigen::Matrix3d::Identity());
 
+    /** Set constant noise of forwarded acc and gyro measurements */
     double sqrtdelta_t = sqrt(1.0/accnoise.bandwidth); /** Noise depends on frequency bandwidth **/
     acceleration_out.cov_acceleration = Eigen::Matrix3d::Zero(); // this is the noise on the acceleration output which occurs at every sample
     acceleration_out.cov_acceleration(0,0) = accnoise.resolution[0] + pow(accnoise.randomwalk[0]/sqrtdelta_t,2);
@@ -209,6 +210,10 @@ bool IKF::configureHook()
     acceleration_out.cov_acceleration(2,2) = accnoise.resolution[2] + pow(accnoise.randomwalk[2]/sqrtdelta_t,2);
 
     sqrtdelta_t = sqrt(1.0/gyronoise.bandwidth); /** Noise depends on frequency bandwidth **/
+    cov_angular_velocity = Eigen::Matrix3d::Zero();
+    cov_angular_velocity(0,0) = pow(gyronoise.randomwalk[0]/sqrtdelta_t,2);
+    cov_angular_velocity(1,1) = pow(gyronoise.randomwalk[1]/sqrtdelta_t,2);
+    cov_angular_velocity(2,2) = pow(gyronoise.randomwalk[2]/sqrtdelta_t,2);
 
     /** Alignment configuration **/
     initial_alignment.acc.setZero();
@@ -472,6 +477,7 @@ void IKF::writeOutput(IKFFilter & filter)
             }
         }
 	orientation_out.angular_velocity = current_angular_velocity;
+        orientation_out.cov_angular_velocity = cov_angular_velocity;
 
         _orientation_samples_out.write(orientation_out);
 

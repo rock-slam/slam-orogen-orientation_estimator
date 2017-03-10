@@ -100,6 +100,8 @@ namespace orientation_estimator {
 
         Eigen::Vector3d acc_body; // saved acceleration for output
 
+        Eigen::Matrix3d cov_angular_velocity;
+
         /** Accumulated measurement for attitude calculation */
         base::samples::IMUSensors initial_alignment;
 
