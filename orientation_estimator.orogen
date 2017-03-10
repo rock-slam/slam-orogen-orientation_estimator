@@ -184,7 +184,7 @@ task_context 'IKF' do
     #********* Operations *********
     #******************************
 
-    # Resets the current heading, usually to the true north
+    # Resets the current heading, usually to the true north, and reinitializes the filter state.
     #
     # For the purpose of aligning the heading to an absolute heading (e.g. true
     # north), addHeadingOffset should be preferred. This is kept for
@@ -193,14 +193,15 @@ task_context 'IKF' do
         returns('bool').
         argument('heading', 'double', 'heading')
 
-    # Add an offset to the current heading
+    # Add an offset to the current heading and reinitialize the filter state.
     #
     # This is commonly used to align the heading estimate to the true north. It
     # should be preferred to resetHeading as the offset is a constant, whereas
     # resetting to an absolute heading is time-sensitive.
     operation('addHeadingOffset').
         returns('bool').
-        argument('heading', 'double', 'heading')
+        argument('heading', 'double', 'heading').
+        argument('variance', 'double', 'Initial variance of the new heading state in rad/s^2')
 
     #******************************
     #********** States ************

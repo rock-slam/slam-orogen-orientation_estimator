@@ -139,20 +139,6 @@ bool IKF::configureHook()
     if (! IKFBase::configureHook())
         return false;
 
-    /******************************************/
-    /** Configuration of the attitude filter **/
-    /******************************************/
-    Eigen::Matrix< double, IKFSTATEVECTORSIZE , 1  > x_0; /** Initial vector state **/
-    Eigen::Matrix3d Ra; /** Measurement noise covariance matrix for accelerometers */
-    Eigen::Matrix3d Rg; /** Measurement noise covariance matrix for gyros */
-    Eigen::Matrix3d Rm; /** Measurement noise covariance matrix for mag */
-    Eigen::Matrix3d Ri; /** Measurement noise covariance matrix for inclinometers */
-    Eigen::Matrix <double, IKFSTATEVECTORSIZE, IKFSTATEVECTORSIZE> P_0; /** Initial covariance matrix **/
-    Eigen::Matrix3d Qbg; /** Noise for the gyros bias instability **/
-    Eigen::Matrix3d Qba; /** Noise for the accelerometers bias instability **/
-    Eigen::Matrix3d Qbi; /** Noise for the inclinometers bias instability **/
-    double sqrtdelta_t = 0.0;
-
     /************************/
     /** Read configuration **/
     /************************/
@@ -211,88 +197,18 @@ bool IKF::configureHook()
     correction_numbers = ceil(sampling_frequency/config.correction_frequency);
     correctionAcc.setZero(); correctionInc.setZero();
 
-    /*************************/
-    /** Noise configuration **/
-    /*************************/
-    if (config.correction_frequency > accnoise.bandwidth)
-        sqrtdelta_t = sqrt(1.0/accnoise.bandwidth); /** Noise depends on frequency bandwidth **/
-    else
-        sqrtdelta_t = sqrt(1.0/config.correction_frequency); /** Noise depends on frequency bandwidth **/
+    /***********************/
+    /** Initialize filter **/
+    /***********************/
+    initializeFilter(Eigen::Quaterniond::Identity(), 1.e-06 * Eigen::Matrix3d::Identity());
 
-    Ra = Eigen::Matrix3d::Zero();
-    Ra(0,0) = accnoise.resolution[0] + pow(accnoise.randomwalk[0]/sqrtdelta_t,2);
-    Ra(1,1) = accnoise.resolution[1] + pow(accnoise.randomwalk[1]/sqrtdelta_t,2);
-    Ra(2,2) = accnoise.resolution[2] + pow(accnoise.randomwalk[2]/sqrtdelta_t,2);
-
-    sqrtdelta_t = sqrt(1.0/accnoise.bandwidth); /** Noise depends on frequency bandwidth **/
+    double sqrtdelta_t = sqrt(1.0/accnoise.bandwidth); /** Noise depends on frequency bandwidth **/
     acceleration_out.cov_acceleration = Eigen::Matrix3d::Zero(); // this is the noise on the acceleration output which occurs at every sample
     acceleration_out.cov_acceleration(0,0) = accnoise.resolution[0] + pow(accnoise.randomwalk[0]/sqrtdelta_t,2);
     acceleration_out.cov_acceleration(1,1) = accnoise.resolution[1] + pow(accnoise.randomwalk[1]/sqrtdelta_t,2);
     acceleration_out.cov_acceleration(2,2) = accnoise.resolution[2] + pow(accnoise.randomwalk[2]/sqrtdelta_t,2);
 
     sqrtdelta_t = sqrt(1.0/gyronoise.bandwidth); /** Noise depends on frequency bandwidth **/
-
-    Rg = Eigen::Matrix3d::Zero();
-    Rg(0,0) = pow(gyronoise.randomwalk[0]/sqrtdelta_t,2);
-    Rg(1,1) = pow(gyronoise.randomwalk[1]/sqrtdelta_t,2);
-    Rg(2,2) = pow(gyronoise.randomwalk[2]/sqrtdelta_t,2);
-
-    Ri = Eigen::Matrix3d::Zero();
-    if(config.use_inclinometers)
-    {
-	if (config.correction_frequency > incnoise.bandwidth)
-	    sqrtdelta_t = sqrt(1.0/incnoise.bandwidth); /** Noise depends on frequency bandwidth **/
-	else
-	    sqrtdelta_t = sqrt(1.0/config.correction_frequency); /** Noise depends on frequency bandwidth **/
-	    
-	Ri(0,0) = incnoise.resolution[0] + pow(incnoise.randomwalk[0]/sqrtdelta_t,2);
-	Ri(1,1) = incnoise.resolution[1] + pow(incnoise.randomwalk[1]/sqrtdelta_t,2);
-	Ri(2,2) = incnoise.resolution[2] + pow(incnoise.randomwalk[2]/sqrtdelta_t,2);
-    }
-
-    /** It does not have magnetometers **/
-    Rm = Eigen::Matrix3d::Zero();
-
-    /** Noise for error in gyros bias instability **/
-    Qbg.setZero();
-    Qbg(0,0) = pow(gyronoise.biasinstability[0],2);
-    Qbg(1,1) = pow(gyronoise.biasinstability[1],2);
-    Qbg(2,2) = pow(gyronoise.biasinstability[2],2);
-
-    /** Noise for error in accelerometers bias instability **/
-    Qba.setZero();
-    Qba(0,0) = pow(accnoise.biasinstability[0],2);
-    Qba(1,1) = pow(accnoise.biasinstability[1],2);
-    Qba(2,2) = pow(accnoise.biasinstability[2],2);
-
-    /** Noise for error in inclinometers bias instability **/
-    Qbi.setZero();
-    if(config.use_inclinometers)
-    {
-	Qbi(0,0) = pow(incnoise.biasinstability[0],2);
-	Qbi(1,1) = pow(incnoise.biasinstability[1],2);
-	Qbi(2,2) = pow(incnoise.biasinstability[2],2);
-    }
-
-
-    /** Initial error covariance **/
-    P_0 = Eigen::Matrix <double,IKFSTATEVECTORSIZE,IKFSTATEVECTORSIZE>::Zero();
-    P_0.block <3, 3> (0,0) = 1.0e-06 * Eigen::Matrix3d::Identity();//Error quaternion
-    P_0.block <3, 3> (3,3) = 1.0e-06 * Eigen::Matrix3d::Identity();//Gyros bias
-    P_0.block <3, 3> (6,6) = 1.0e-06 * Eigen::Matrix3d::Identity();//Accelerometers bias
-    P_0.block <3, 3> (9,9) = 1.0e-06 * Eigen::Matrix3d::Identity();//Inclinometers bias
-
-    /** Theoretical Gravity **/
-    double gravity = GRAVITY;
-    if (location.latitude > 0.0 && location.latitude < base::Angle::deg2Rad(90.0))
-        gravity = BaseEstimator::GravityModel (location.latitude, location.altitude);
-
-    /** Initialize the filter, including the adaptive part **/
-    ikf_filter.Init(P_0, Ra, Rg, Rm, Ri, Qbg, Qba, Qbi, gravity, location.dip_angle,
-            adaptiveconfigAcc.M1, adaptiveconfigAcc.M2, adaptiveconfigAcc.gamma,
-            adaptiveconfigInc.M1, adaptiveconfigInc.M2, adaptiveconfigInc.gamma);
-    
-    ikf_filter.setInitBias(gyronoise.biasoffset, accnoise.biasoffset, incnoise.biasoffset);
 
     /** Alignment configuration **/
     initial_alignment.acc.setZero();
@@ -333,14 +249,6 @@ bool IKF::configureHook()
     std::cout<< "Sampling frequency: "<<sampling_frequency<<"\n";
     std::cout<< "Correction frequency: "<<config.correction_frequency<<"\n";
     std::cout<< "Correction numbers: "<<correction_numbers<<"\n";
-    std::cout<< "Rg\n"<<Rg<<"\n";
-    std::cout<< "Ra\n"<<Ra<<"\n";
-    std::cout<< "Rm\n"<<Rm<<"\n";
-    std::cout<< "Ri\n"<<Ri<<"\n";
-    std::cout<< "P_0\n"<<P_0<<"\n";
-    std::cout<< "Qbg\n"<<Qbg<<"\n";
-    std::cout<< "Qba\n"<<Qba<<"\n";
-    std::cout<< "Qbi\n"<<Qbi<<"\n";
     #endif
 
     return true;
@@ -551,7 +459,7 @@ void IKF::writeOutput(IKFFilter & filter)
         orientation_out.time = prev_ts;
         orientation_out.orientation = filter.getAttitude();
         orientation_out.cov_orientation = filter.getCovariance().block<3, 3>(0,0);
-        if (prev_orientation_out.time.isNull())
+        if (prev_orientation_out.time.isNull() || !prev_orientation_out.hasValidOrientation())
             prev_orientation_out = orientation_out;
         if(!config.forward_angular_velocity_from_gyro)
         {
@@ -583,14 +491,130 @@ bool IKF::resetHeading(double heading)
     Eigen::Quaterniond corrected_attitide = Eigen::AngleAxisd(base::Angle::normalizeRad(heading), Eigen::Vector3d::UnitZ()) *
                                             Eigen::AngleAxisd(euler[1], Eigen::Vector3d::UnitY()) *
                                             Eigen::AngleAxisd(euler[2], Eigen::Vector3d::UnitX());
-    return ikf_filter.setAttitude(corrected_attitide);
+    Eigen::Matrix3d cov_attitude = Eigen::Matrix3d::Zero();
+    cov_attitude.topLeftCorner<2,2>() = ikf_filter.getCovariance().topLeftCorner<2,2>();
+    cov_attitude(3,3) = 1.e-06;
+    initializeFilter(corrected_attitide, cov_attitude);
+    return true;
 }
 
-bool IKF::addHeadingOffset(double offset)
+bool IKF::addHeadingOffset(double offset, double variance)
 {
     base::Vector3d euler = base::getEuler(ikf_filter.getAttitude());
     Eigen::Quaterniond corrected_attitide = Eigen::AngleAxisd(euler[0] + offset, Eigen::Vector3d::UnitZ()) *
                                             Eigen::AngleAxisd(euler[1], Eigen::Vector3d::UnitY()) *
                                             Eigen::AngleAxisd(euler[2], Eigen::Vector3d::UnitX());
-    return ikf_filter.setAttitude(corrected_attitide);
+    Eigen::Matrix3d cov_attitude = Eigen::Matrix3d::Zero();
+    cov_attitude.topLeftCorner<2,2>() = ikf_filter.getCovariance().topLeftCorner<2,2>();
+    cov_attitude(2,2) = variance;
+    initializeFilter(corrected_attitide, cov_attitude);
+    return true;
+}
+
+void IKF::initializeFilter(const Eigen::Quaterniond& attitude, const Eigen::Matrix3d& cov_attitude)
+{
+    /******************************************/
+    /** Configuration of the attitude filter **/
+    /******************************************/
+    Eigen::Matrix< double, IKFSTATEVECTORSIZE , 1  > x_0; /** Initial vector state **/
+    Eigen::Matrix3d Ra; /** Measurement noise covariance matrix for accelerometers */
+    Eigen::Matrix3d Rg; /** Measurement noise covariance matrix for gyros */
+    Eigen::Matrix3d Rm; /** Measurement noise covariance matrix for mag */
+    Eigen::Matrix3d Ri; /** Measurement noise covariance matrix for inclinometers */
+    Eigen::Matrix <double, IKFSTATEVECTORSIZE, IKFSTATEVECTORSIZE> P_0; /** Initial covariance matrix **/
+    Eigen::Matrix3d Qbg; /** Noise for the gyros bias instability **/
+    Eigen::Matrix3d Qba; /** Noise for the accelerometers bias instability **/
+    Eigen::Matrix3d Qbi; /** Noise for the inclinometers bias instability **/
+    double sqrtdelta_t = 0.0;
+
+    /*************************/
+    /** Noise configuration **/
+    /*************************/
+    if (config.correction_frequency > accnoise.bandwidth)
+        sqrtdelta_t = sqrt(1.0/accnoise.bandwidth); /** Noise depends on frequency bandwidth **/
+    else
+        sqrtdelta_t = sqrt(1.0/config.correction_frequency); /** Noise depends on frequency bandwidth **/
+
+    Ra = Eigen::Matrix3d::Zero();
+    Ra(0,0) = accnoise.resolution[0] + pow(accnoise.randomwalk[0]/sqrtdelta_t,2);
+    Ra(1,1) = accnoise.resolution[1] + pow(accnoise.randomwalk[1]/sqrtdelta_t,2);
+    Ra(2,2) = accnoise.resolution[2] + pow(accnoise.randomwalk[2]/sqrtdelta_t,2);
+
+    sqrtdelta_t = sqrt(1.0/gyronoise.bandwidth); /** Noise depends on frequency bandwidth **/
+
+    Rg = Eigen::Matrix3d::Zero();
+    Rg(0,0) = pow(gyronoise.randomwalk[0]/sqrtdelta_t,2);
+    Rg(1,1) = pow(gyronoise.randomwalk[1]/sqrtdelta_t,2);
+    Rg(2,2) = pow(gyronoise.randomwalk[2]/sqrtdelta_t,2);
+
+    Ri = Eigen::Matrix3d::Zero();
+    if(config.use_inclinometers)
+    {
+        if (config.correction_frequency > incnoise.bandwidth)
+            sqrtdelta_t = sqrt(1.0/incnoise.bandwidth); /** Noise depends on frequency bandwidth **/
+        else
+            sqrtdelta_t = sqrt(1.0/config.correction_frequency); /** Noise depends on frequency bandwidth **/
+
+        Ri(0,0) = incnoise.resolution[0] + pow(incnoise.randomwalk[0]/sqrtdelta_t,2);
+        Ri(1,1) = incnoise.resolution[1] + pow(incnoise.randomwalk[1]/sqrtdelta_t,2);
+        Ri(2,2) = incnoise.resolution[2] + pow(incnoise.randomwalk[2]/sqrtdelta_t,2);
+    }
+
+    /** It does not have magnetometers **/
+    Rm = Eigen::Matrix3d::Zero();
+
+    /** Noise for error in gyros bias instability **/
+    Qbg.setZero();
+    Qbg(0,0) = pow(gyronoise.biasinstability[0],2);
+    Qbg(1,1) = pow(gyronoise.biasinstability[1],2);
+    Qbg(2,2) = pow(gyronoise.biasinstability[2],2);
+
+    /** Noise for error in accelerometers bias instability **/
+    Qba.setZero();
+    Qba(0,0) = pow(accnoise.biasinstability[0],2);
+    Qba(1,1) = pow(accnoise.biasinstability[1],2);
+    Qba(2,2) = pow(accnoise.biasinstability[2],2);
+
+    /** Noise for error in inclinometers bias instability **/
+    Qbi.setZero();
+    if(config.use_inclinometers)
+    {
+        Qbi(0,0) = pow(incnoise.biasinstability[0],2);
+        Qbi(1,1) = pow(incnoise.biasinstability[1],2);
+        Qbi(2,2) = pow(incnoise.biasinstability[2],2);
+    }
+
+
+    /** Initial error covariance **/
+    P_0 = Eigen::Matrix <double,IKFSTATEVECTORSIZE,IKFSTATEVECTORSIZE>::Zero();
+    P_0.block <3, 3> (0,0) = cov_attitude;//Error quaternion
+    P_0.block <3, 3> (3,3) = 1.0e-06 * Eigen::Matrix3d::Identity();//Gyros bias
+    P_0.block <3, 3> (6,6) = 1.0e-06 * Eigen::Matrix3d::Identity();//Accelerometers bias
+    P_0.block <3, 3> (9,9) = 1.0e-06 * Eigen::Matrix3d::Identity();//Inclinometers bias
+
+    /** Theoretical Gravity **/
+    double gravity = GRAVITY;
+    if (location.latitude > 0.0 && location.latitude < base::Angle::deg2Rad(90.0))
+        gravity = BaseEstimator::GravityModel (location.latitude, location.altitude);
+
+    /** Initialize the filter, including the adaptive part **/
+    ikf_filter.Init(P_0, Ra, Rg, Rm, Ri, Qbg, Qba, Qbi, gravity, location.dip_angle,
+            adaptiveconfigAcc.M1, adaptiveconfigAcc.M2, adaptiveconfigAcc.gamma,
+            adaptiveconfigInc.M1, adaptiveconfigInc.M2, adaptiveconfigInc.gamma);
+
+    ikf_filter.setInitBias(gyronoise.biasoffset, accnoise.biasoffset, incnoise.biasoffset);
+
+    ikf_filter.setAttitude(attitude);
+    prev_orientation_out.invalidate();
+
+    #ifdef DEBUG_PRINTS
+    std::cout<< "Rg\n"<<Rg<<"\n";
+    std::cout<< "Ra\n"<<Ra<<"\n";
+    std::cout<< "Rm\n"<<Rm<<"\n";
+    std::cout<< "Ri\n"<<Ri<<"\n";
+    std::cout<< "P_0\n"<<P_0<<"\n";
+    std::cout<< "Qbg\n"<<Qbg<<"\n";
+    std::cout<< "Qba\n"<<Qba<<"\n";
+    std::cout<< "Qbi\n"<<Qbi<<"\n";
+    #endif
 }
