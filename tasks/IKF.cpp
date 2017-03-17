@@ -594,9 +594,12 @@ void IKF::initializeFilter(const Eigen::Quaterniond& attitude, const Eigen::Matr
     /** Initial error covariance **/
     P_0 = Eigen::Matrix <double,IKFSTATEVECTORSIZE,IKFSTATEVECTORSIZE>::Zero();
     P_0.block <3, 3> (0,0) = cov_attitude;//Error quaternion
-    P_0.block <3, 3> (3,3) = 1.0e-06 * Eigen::Matrix3d::Identity();//Gyros bias
-    P_0.block <3, 3> (6,6) = 1.0e-06 * Eigen::Matrix3d::Identity();//Accelerometers bias
-    P_0.block <3, 3> (9,9) = 1.0e-06 * Eigen::Matrix3d::Identity();//Inclinometers bias
+    P_0.block <3, 3> (3,3) = Qbg;//Gyros bias
+    P_0.block <3, 3> (6,6) = Qba;//Accelerometers bias
+    if(config.use_inclinometers)
+        P_0.block <3, 3> (9,9) = Qbi;//Inclinometers bias
+    else
+        P_0.block <3, 3> (9,9) = 1.0e-06 * Eigen::Matrix3d::Identity();//Inclinometers bias
 
     /** Theoretical Gravity **/
     double gravity = GRAVITY;
