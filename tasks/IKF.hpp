@@ -60,6 +60,8 @@ namespace orientation_estimator {
     	unsigned int initial_samples;
         base::Time initial_alignment_ts;
 
+        double headingVariance;
+
         /**************************/
         /*** Property Variables ***/
         /**************************/

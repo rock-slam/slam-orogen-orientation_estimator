@@ -266,6 +266,7 @@ bool IKF::startHook()
 {
     if (! IKFBase::startHook())
         return false;
+    headingVariance = 0;
     return true;
 }
 void IKF::updateHook()
@@ -483,6 +484,7 @@ void IKF::writeOutput(IKFFilter & filter)
 	orientation_out.angular_velocity = current_angular_velocity;
         orientation_out.cov_angular_velocity = cov_angular_velocity;
 
+        orientation_out.cov_orientation(2,2) += headingVariance;
         _orientation_samples_out.write(orientation_out);
 
         if(base::isnotnan(acc_body))
@@ -515,9 +517,9 @@ bool IKF::addHeadingOffset(double offset, double variance)
                                             Eigen::AngleAxisd(euler[1], Eigen::Vector3d::UnitY()) *
                                             Eigen::AngleAxisd(euler[2], Eigen::Vector3d::UnitX());
     Eigen::Matrix3d cov_attitude = Eigen::Matrix3d::Zero();
-    cov_attitude.topLeftCorner<2,2>() = ikf_filter.getCovariance().topLeftCorner<2,2>();
-    cov_attitude(2,2) = variance;
+    cov_attitude.topLeftCorner<3,3>() = ikf_filter.getCovariance().topLeftCorner<3,3>();
     initializeFilter(corrected_attitide, cov_attitude);
+    headingVariance = variance;
     return true;
 }
 
