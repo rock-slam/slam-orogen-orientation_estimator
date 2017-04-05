@@ -48,12 +48,16 @@ void IKF::imu_samplesTransformerCallback(const base::Time &ts, const ::base::sam
         return exception(NAN_ERROR);
     }
 
+    Eigen::Vector3d mag = imu_samples_sample.mag;
+    if (!config.use_magnetometers && !config.use_inclinometers)
+        mag = Eigen::Vector3d(base::unset<double>(), base::unset<double>(), base::unset<double>());
+
     /** Rotate measurements to body frame **/
     base::samples::IMUSensors transformed_imu_samples;
     transformed_imu_samples.time = imu_samples_sample.time;
     transformed_imu_samples.acc = imu2body.rotation() * imu_samples_sample.acc;
     transformed_imu_samples.gyro = imu2body.rotation() * imu_samples_sample.gyro;
-    transformed_imu_samples.mag = imu2body.rotation() * imu_samples_sample.mag;
+    transformed_imu_samples.mag = imu2body.rotation() * mag;
 
     if(config.forward_angular_velocity_from_gyro)
     {
